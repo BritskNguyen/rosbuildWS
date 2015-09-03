@@ -1,0 +1,17 @@
+<package>
+  <description brief="imuSbg">
+
+     imuSbg
+
+  </description>
+  <author>britsk nguyen</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/imuSbg</url>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+  <depend package="std_msgs"/>
+
+</package>
+
+
