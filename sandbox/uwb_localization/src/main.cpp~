@@ -1,0 +1,53 @@
+//============================================================================
+// Name        : serialDemo.cpp
+// Author      : britsk nguyen
+// Version     :
+// Copyright   : Your copyright notice
+// Description : ros node to communicate with vicon
+//============================================================================
+#define ROS_MASTER_URI		"http://localhost:11311"
+#define ROS_ROOT		"/opt/ros/indigo/share/ros"
+#include <iostream>
+#include "stdio.h"
+#include <stdlib.h>
+#include <sstream>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <fcntl.h>
+#include <termios.h>
+#include <math.h>
+#include <cstring>
+#include <unistd.h>
+#include <sstream>
+#include <signal.h>
+#include <math.h>
+#include <viconXbee/viconPoseMsg.h>
+#include <geometry_msgs/Twist.h>
+#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
+#include <sensor_msgs/Imu.h>
+#include <tf/transform_broadcaster.h>
+#include <boost/assign/list_of.hpp>
+//#include <mavros/Imu.h>
+#define KNRM  "\x1B[0m"
+#define KRED  "\x1B[31m"
+#define KGRN  "\x1B[32m"
+#define KYEL  "\x1B[33m"
+#define KBLU  "\x1B[34m"
+#define KMAG  "\x1B[35m"
+#define KCYN  "\x1B[36m"
+#define KWHT  "\x1B[37m"
+#define RESET "\033[0m"
+
+int main(int argc, char **argv)
+{
+	//Create ros handler to node
+	ros::init(argc, argv, "uwb_localization");
+	ros::NodeHandle viconXbeeNode("~");
+	ros::Rate rate(50);
+	while(ros::ok())
+	{
+		rate.sleep();
+	}
+}

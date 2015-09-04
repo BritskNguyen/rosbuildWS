@@ -1,0 +1,1 @@
+/usr/bin/c++  -fPIC -O2 -g -DNDEBUG   -shared -Wl,-soname,libgtest_main.so -o ../lib/libgtest_main.so CMakeFiles/gtest_main.dir/src/gtest_main.cc.o  -L/home/britsk/rosbuildWS/sandbox/imuSbg/gtest/src -lpthread ../lib/libgtest.so -lpthread -Wl,-rpath,/home/britsk/rosbuildWS/sandbox/imuSbg/gtest/src:/home/britsk/rosbuildWS/sandbox/imuSbg/lib 

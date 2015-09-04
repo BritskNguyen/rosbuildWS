@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/britsk/rosbuildWS/sandbox/viconXbee/build/devel/setup.sh

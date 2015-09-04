@@ -271,3 +271,37 @@ Parsed CXX implicit link information from above output:
   implicit fwks: []
 
 
+Determining if files pthread.h exist passed with the following output:
+Change Dir: /home/britsk/rosbuildWS/sandbox/imuSbg/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec972306461/fast"
+make[1]: Entering directory `/home/britsk/rosbuildWS/sandbox/imuSbg/build/CMakeFiles/CMakeTmp'
+/usr/bin/make -f CMakeFiles/cmTryCompileExec972306461.dir/build.make CMakeFiles/cmTryCompileExec972306461.dir/build
+make[2]: Entering directory `/home/britsk/rosbuildWS/sandbox/imuSbg/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/britsk/rosbuildWS/sandbox/imuSbg/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec972306461.dir/CheckIncludeFiles.c.o
+/usr/bin/cc    -o CMakeFiles/cmTryCompileExec972306461.dir/CheckIncludeFiles.c.o   -c /home/britsk/rosbuildWS/sandbox/imuSbg/build/CMakeFiles/CMakeTmp/CheckIncludeFiles.c
+Linking C executable cmTryCompileExec972306461
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec972306461.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTryCompileExec972306461.dir/CheckIncludeFiles.c.o  -o cmTryCompileExec972306461 -rdynamic 
+make[2]: Leaving directory `/home/britsk/rosbuildWS/sandbox/imuSbg/build/CMakeFiles/CMakeTmp'
+make[1]: Leaving directory `/home/britsk/rosbuildWS/sandbox/imuSbg/build/CMakeFiles/CMakeTmp'
+
+
+Determining if the function pthread_create exists in the pthread passed with the following output:
+Change Dir: /home/britsk/rosbuildWS/sandbox/imuSbg/build/CMakeFiles/CMakeTmp
+
+Run Build Command:/usr/bin/make "cmTryCompileExec1523937473/fast"
+make[1]: Entering directory `/home/britsk/rosbuildWS/sandbox/imuSbg/build/CMakeFiles/CMakeTmp'
+/usr/bin/make -f CMakeFiles/cmTryCompileExec1523937473.dir/build.make CMakeFiles/cmTryCompileExec1523937473.dir/build
+make[2]: Entering directory `/home/britsk/rosbuildWS/sandbox/imuSbg/build/CMakeFiles/CMakeTmp'
+/usr/bin/cmake -E cmake_progress_report /home/britsk/rosbuildWS/sandbox/imuSbg/build/CMakeFiles/CMakeTmp/CMakeFiles 1
+Building C object CMakeFiles/cmTryCompileExec1523937473.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTryCompileExec1523937473.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-2.8/Modules/CheckFunctionExists.c
+Linking C executable cmTryCompileExec1523937473
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTryCompileExec1523937473.dir/link.txt --verbose=1
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTryCompileExec1523937473.dir/CheckFunctionExists.c.o  -o cmTryCompileExec1523937473 -rdynamic -lpthread 
+make[2]: Leaving directory `/home/britsk/rosbuildWS/sandbox/imuSbg/build/CMakeFiles/CMakeTmp'
+make[1]: Leaving directory `/home/britsk/rosbuildWS/sandbox/imuSbg/build/CMakeFiles/CMakeTmp'
+
+

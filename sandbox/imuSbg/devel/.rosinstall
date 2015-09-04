@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/britsk/rosbuildWS/sandbox/imuSbg/devel/setup.sh

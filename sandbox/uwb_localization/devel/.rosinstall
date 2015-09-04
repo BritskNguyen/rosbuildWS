@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/britsk/rosbuildWS/sandbox/uwb_localization/devel/setup.sh

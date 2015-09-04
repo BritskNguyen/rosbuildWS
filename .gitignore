@@ -1,0 +1,6 @@
+**/build/**
+**/build/**/**
+**/bin/**
+*~
+/sandbox/imuSbg/build/CMakeFiles/CMakeOutput.log
+/sandbox/imuSbg/build/CMakeCache.txt
