@@ -42,7 +42,7 @@
 #include <sstream>
 #include <signal.h>
 #include <math.h>
-//#include <viconXbee/viconPoseMsg.h>
+#include <uwb_localization/rcmEkfStateMsg.h>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
@@ -73,7 +73,8 @@
 #define RESET "\033[0m"
 
 //#define DEFAULT_DEST_NODE_ID    301
-#define
+#define     DFLT_PORT           "/dev/ttyUSB0"
+#define     DFLT_NODE_RATE      "10"
 #define     TRILAT_TIMES        100
 
 //_____________________________________________________________________________
@@ -95,11 +96,11 @@ static double ancs[12] =
     -3.0, -3.0, 3.0, 3.0,
     -1.78, -1.17, -1.31, -1.31
 };
-static double R = 0.2;
+//static double R = 0.2;
 //inputs for the ekf
 static double dists[4] = { 0, 0, 0, 0 };
 static double deltat = 0;
-static double imus = 0;
+//static double imus = 0;
 static unsigned int nodeId = 1;		//WARNING: MATLAB GENERATED FUNCTION USES INDEX 1 FOR 1ST ELEMENT
 //output of the ekf
 static double x_est[6];
@@ -128,12 +129,30 @@ static double initialPos[3];
 //
 // main - sample app entry point
 //_____________________________________________________________________________
+using namespace std;
 
 int main(int argc, char *argv[])
 {
 	//Create ros handler to node
 	ros::init(argc, argv, "uwb_localization");
     ros::NodeHandle rcmEkfNodeHandle("~");
+    string serialPortName = string(DFLT_PORT);
+    string rcmEkfRate = string(DFLT_NODE_RATE);
+    uint32_T nodeRate = 10;
+    if(rcmEkfNodeHandle.getParam("rcmSerialPort", serialPortName))
+        printf(KBLU"Retrieved value %s for param 'rcmSerialPort'!\n"RESET, serialPortName.data());
+    else
+    {
+        //serialPortName = string(DFLT_PORT);
+        printf(KRED "Couldn't retrieve param 'rcmSerialPort', program closed!\n"RESET);
+        return 0;
+    }
+
+    if(rcmEkfNodeHandle.getParam("rcmLocalizationRate", rcmEkfRate))
+        printf(KBLU"Retrieved value %s for param 'rcmLocalizationRate'\n"RESET, rcmEkfRate.data());
+    else
+        printf(KYEL "Couldn't retrieve param 'rcmLocalizationRate', applying default value %sHz\n"RESET, rcmEkfRate.data());
+    ros::Publisher rcmLocalizationPublisher = rcmEkfNodeHandle.advertise<uwb_localization::rcmEkfStateMsg>("rcmEkfTopic", 1);
     ros::Time timeStart, timeEnd;
     int destNodeId;
     int status;
@@ -151,7 +170,7 @@ int main(int argc, char *argv[])
 
     //initialize P410 serial interface
     // initialize the interface to the RCM
-    if (rcmIfInit(rcmIf, USB_COM_NUMBER) != OK)
+    if (rcmIfInit(rcmIf, &serialPortName[0]) != OK)
     {
         printf("Initialization failed.\n");
         exit(0);
@@ -304,8 +323,9 @@ int main(int argc, char *argv[])
     int loopCount = 0;
     int faultyRangingCount = 0;
 
-    // enter loop ranging to a node and broadcasting the resulting range
-    ros::Rate rate(20);
+    // enter loop to a ranging a node and broadcasting the resulting range
+    nodeRate = atoi(rcmEkfRate.data());
+    ros::Rate rate(nodeRate);
     while(ros::ok())
     {
         if (loopCount == 200)
@@ -347,12 +367,7 @@ int main(int argc, char *argv[])
         if ((rangeInfo.rangeMeasurementType & RCM_RANGE_TYPE_PRECISION) & (rangeInfo.precisionRangeMm < 15000))
         {
             lastRangingSuccesful = true;
-            if (rangeInfo.precisionRangeMm < 0)
-            {
-                printf("\n negative range value, abort mission!");
-                getchar();
-                exit(0);
-            }
+
             dists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
 
             //calculate deltat
@@ -362,8 +377,19 @@ int main(int argc, char *argv[])
             //step the model
             ekf_Obj.step(dists, deltat, 0, nodeId, x_est);
 
-            if (x_est)
-                //if no error, print the estimated location to the screen, else exit program
+            uwb_localization::rcmEkfStateMsg rcmEkfState;
+            rcmEkfState.x = x_est[0];
+            rcmEkfState.y = x_est[1];
+            rcmEkfState.z = x_est[2];
+            rcmEkfState.dx = x_est[3];
+            rcmEkfState.dy = x_est[4];
+            rcmEkfState.dz = x_est[5];
+            for(int i; i < 36; i++)
+                rcmEkfState.covariance[i] = ekf_Obj.ekf_DW.UnitDelay1_DSTATE[0];
+
+            rcmLocalizationPublisher.publish(rcmEkfState);
+
+            //if no error, print the estimated location to the screen, else exit program
             if (rtmGetErrorStatus(ekf_Obj.getRTM()) == (NULL))
             {
                 //Print the state to screen
@@ -374,7 +400,7 @@ int main(int argc, char *argv[])
                     ekf_Obj.ekf_B.P_pre[7],
                     ekf_Obj.ekf_B.P_pre[14],
                     deltat,
-                    (faultyRangingCount/(double)loopCoun)*100
+                    (faultyRangingCount/(double)loopCount)*100
                     );
             }
             else

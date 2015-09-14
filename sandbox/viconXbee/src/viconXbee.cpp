@@ -302,7 +302,7 @@ int main(int argc, char **argv)
 			seqCount++;
 
 		}
-		rate.sleep();
+        rate.sleep();
 	}
 	return 0;
 }
