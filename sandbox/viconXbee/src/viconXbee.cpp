@@ -45,7 +45,7 @@
 #define DFLT_PORT	"/dev/ttyUSB0"
 #define RCV_THRESHOLD	40					//Receive frame's length
 #define FPS				40					//Frames per second
-#define DFLT_NODE_RATE		"40"					//Update frequency
+#define DFLT_NODE_RATE	40					//Update frequency
 #define	UP				0xFF
 #define DOWN			0x00
 #define HEADER_NAN		0x7FAAAAAA
@@ -65,8 +65,6 @@ uint8_t		headerIndex = 0xFF;
 //uint8_t		serialPortName[13] = {'/','d', 'e','v','/', 't', 't', 'y', 'U', 'S', 'B', '0'};
 uint32_t	seqCount = 0;
 //float viconX , viconY, viconZ, viconXd, viconYd, viconZd, viconPitchd, viconRolld, viconYawd;
-uint32_t	nodeRate = 40;
-
 long validCount = 0;
 long faultCount = 0;
 long freeCount = 0;
@@ -83,7 +81,8 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "viconXbeeNode");
 	ros::NodeHandle viconXbeeNode("~");
 	string serialPortName = string(DFLT_PORT);
-	string viconNodeRate = string(DFLT_NODE_RATE);
+    int viconNodeRate = DFLT_NODE_RATE;
+    bool handshakingMode = true;
 	if(viconXbeeNode.getParam("viconSerialPort", serialPortName))
 		printf(KBLU"Retrieved value %s for param 'viconSerialPort'!\n"RESET, serialPortName.data());
 	else
@@ -94,14 +93,22 @@ int main(int argc, char **argv)
 	}
 
 	if(viconXbeeNode.getParam("viconNodeRate", viconNodeRate))
-		printf(KBLU"Retrieved value %s for param 'viconnNodeRate'\n"RESET, viconNodeRate.data());
+        printf(KBLU"Retrieved value %d for param 'viconnNodeRate'\n"RESET, viconNodeRate);
 	else
-		printf(KYEL "Couldn't retrieve param 'viconnNodeRate', applying default value %sHz\n"RESET, viconNodeRate.data());
+        printf(KYEL "Couldn't retrieve param 'viconnNodeRate', applying default value %dHz\n"RESET, viconNodeRate);
 
-	nodeRate = atoi(viconNodeRate.data());
+    if(viconXbeeNode.getParam("viconhandshakingModeEnabled", handshakingMode))
+    {
+        if(handshakingMode)
+            printf(KBLU"Retrieved value 'true' for param 'viconhandshakingModeEnabled'\n"RESET);
+        else
+            printf(KBLU"Retrieved value 'false' for param 'viconhandshakingModeEnabled'\n"RESET);
+    }
+    else
+        printf(KBLU"Couldn't retrieve param 'viconhandshakingModeEnabled'. Using default mode with handshake\n"RESET);
+
 	ros::Publisher viconPosePublisher = viconXbeeNode.advertise<viconXbee::viconPoseMsg>("viconPoseTopic", 1);
 	ros::Publisher viconMocapPublisher = viconXbeeNode.advertise<geometry_msgs::PoseStamped>("mocap/pose", 1);
-	ros::Time timeStamp;
 
 	//-------------------Initialize Serial Connection---------------------------------------------------
 	int fd = -1;
@@ -166,11 +173,11 @@ int main(int argc, char **argv)
 	//-----------------------------------Serial Initialization-------------------------------------
 
 	//ros Rate object to control the update rate
-	ros::Rate rate(nodeRate);
+    ros::Rate rate(viconNodeRate);
 	tcflush(fd, TCIOFLUSH);
 	while(ros::ok())
 	{
-		if(loopCount == nodeRate*5)
+        if(loopCount == viconNodeRate*5)
 		{
 			loopCount = 0;
 			validCount = 0;
@@ -179,7 +186,15 @@ int main(int argc, char **argv)
 
 		}
 		loopCount++;
-		printf("Waiting for message...\n");
+
+        printf("Waiting for message...\n");
+
+        if(handshakingMode)
+        {
+            write(fd,"d", 1);
+            rate.sleep();
+        }
+
 		if(msgFlag == UP)
 		{
 			msgFlag = DOWN;
@@ -243,7 +258,8 @@ int main(int argc, char **argv)
 					validCount++;
 					printf(KBLU "Got well-aligned message... ^,^!\n");
 					if(misAlgnFlag == DOWN)
-						misAlgnFlag = UP;
+                        //					for(int i = 0; i < RCV_THRESHOLD/4; i++)
+                        misAlgnFlag = UP;
 					printf("#");
 					printf("%#8x$", *(uint32_t *)(rcvdFrame));
 					for(int i = 1; i < RCV_THRESHOLD/4; i++)
@@ -259,7 +275,7 @@ int main(int argc, char **argv)
 		else
 		{
 			freeCount++;
-			if(freeCount >= (nodeRate*5/4))
+            if(freeCount >= (viconNodeRate*5/20))
 			{
 				//A magical flush that appears to solve the misalignment...
 				tcflush(fd, TCIOFLUSH);
@@ -283,7 +299,7 @@ int main(int argc, char **argv)
 			viconPose.roll = *(float *)(rcvdFrame + 28);
 			viconPose.pitch = *(float *)(rcvdFrame + 32);
 			viconPose.yaw = *(float *)(rcvdFrame + 36);
-			viconPosePublisher.publish(viconPose);
+            viconPosePublisher.publish(viconPose);
 
 			//publish to mocap/pose topic
 			geometry_msgs::PoseStamped poseStamped;
@@ -302,7 +318,8 @@ int main(int argc, char **argv)
 			seqCount++;
 
 		}
-        rate.sleep();
+        if(!handshakingMode)
+            rate.sleep();
 	}
 	return 0;
 }
