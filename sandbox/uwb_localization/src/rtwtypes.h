@@ -1,11 +1,11 @@
 //
 // File: rtwtypes.h
 //
-// Code generated for Simulink model 'ekf'.
+// Code generated for Simulink model 'ekf_rod'.
 //
-// Model version                  : 1.118
+// Model version                  : 1.189
 // Simulink Coder version         : 8.6 (R2014a) 27-Dec-2013
-// C/C++ source code generated on : Sat Sep 12 21:56:16 2015
+// C/C++ source code generated on : Sun Sep 20 21:37:26 2015
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex

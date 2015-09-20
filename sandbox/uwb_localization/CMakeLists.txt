@@ -24,11 +24,8 @@ rosbuild_genmsg()
 SET(UWB_SRCS 
         src/rcm.c    
 	src/rcmIf.c
-	src/ekf.cpp
+	src/ekf_rod.cpp
 	src/trilat.cpp
-	#src/ekf.h
-	#src/trilat.h
-	#src/rtwtypes.h
 )
 
 #common commands for building c++ executables and libraries

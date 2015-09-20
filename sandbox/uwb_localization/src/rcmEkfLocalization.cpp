@@ -54,7 +54,7 @@
 #include "rcm.h"
 
 //ekf ert generated code
-#include "ekf.h"
+#include "ekf_rod.h"
 #include "trilat.h"
 
 //_____________________________________________________________________________
@@ -94,7 +94,7 @@ static double ancs[12] =
 {
     -3.0, 3.0, 3.0, -3.0,
     -3.0, -3.0, 3.0, 3.0,
-    -1.78, -1.17, -1.31, -1.31
+    -1.71, -0.1, -1.31, -0.23
 };
 //static double R = 0.2;
 //inputs for the ekf
@@ -110,10 +110,10 @@ static double x_est[6];
 static trilatModelClass trilat_Obj;
 static double ancsTranspose[12] =
 {
-    -3.0, -3.0, -1.78,
-    3.0, -3.0, -1.17,
+    -3.0, -3.0, -1.71,
+    3.0, -3.0, -0.1,
     3.0, 3.0, -1.31,
-    -3.0, 3.0, -1.31
+    -3.0, 3.0, -0.23
 };
 static double tempDists[4] = { 0, 0, 0, 0 };//{ 7.51, 13.03, 12.69, 6.90 };
 static double trilatPos[3] = { 0, 0, 0 };
@@ -153,8 +153,9 @@ int main(int argc, char *argv[])
     else
         printf(KYEL "Couldn't retrieve param 'rcmLocalizationRate', applying default value %sHz\n"RESET, rcmEkfRate.data());
     ros::Publisher rcmLocalizationPublisher = rcmEkfNodeHandle.advertise<uwb_localization::rcmEkfStateMsg>("rcmEkfTopic", 1);
-    ros::Time timeStart, timeEnd;
+
     int destNodeId;
+    ros::Time timeStart, timeEnd;
     int status;
     rcmIfType   rcmIf;
     rcmConfiguration config;
@@ -164,101 +165,99 @@ int main(int argc, char *argv[])
     rcmMsg_ScanInfo scanInfo;
     rcmMsg_FullScanInfo fullScanInfo;
 
-	printf("RCM Sample App\n\n");
-
-    rcmIf = rcmIfUsb;
-
     //initialize P410 serial interface
-    // initialize the interface to the RCM
-    if (rcmIfInit(rcmIf, &serialPortName[0]) != OK)
     {
-        printf("Initialization failed.\n");
-        exit(0);
-    }
+        printf("RCM Sample App\n\n");
 
-    // Make sure RCM is awake
-    if (rcmSleepModeSet(RCM_SLEEP_MODE_ACTIVE) != 0)
-    {
-        printf("Time out waiting for sleep mode set.\n");
-        exit(0);
-    }
+        rcmIf = rcmIfUsb;
 
-    // Make sure opmode is RCM
-    if (rcmOpModeSet(RCM_OPMODE_RCM) != 0)
-    {
-        printf("Time out waiting for opmode set.\n");
-        exit(0);
-    }
+        // initialize the interface to the RCM
+        if (rcmIfInit(rcmIf, &serialPortName[0]) != OK)
+        {
+            printf("Initialization failed.\n");
+            exit(0);
+        }
 
-    // execute Built-In Test - verify that radio is healthy
-    if (rcmBit(&status) != 0)
-    {
-        printf("Time out waiting for BIT.\n");
-        exit(0);
-    }
+        // Make sure RCM is awake
+        if (rcmSleepModeSet(RCM_SLEEP_MODE_ACTIVE) != 0)
+        {
+            printf("Time out waiting for sleep mode set.\n");
+            exit(0);
+        }
 
-    if (status != OK)
-    {
-        printf("Built-in test failed - status %d.\n", status);
-        exit(0);
-    }
-    else
-    {
-        printf("Radio passes built-in test.\n\n");
-    }
+        // Make sure opmode is RCM
+        if (rcmOpModeSet(RCM_OPMODE_RCM) != 0)
+        {
+            printf("Time out waiting for opmode set.\n");
+            exit(0);
+        }
 
-    // retrieve config from RCM
-    if (rcmConfigGet(&config) != 0)
-    {
-        printf("Time out waiting for config confirm.\n");
-        exit(0);
+        // execute Built-In Test - verify that radio is healthy
+        if (rcmBit(&status) != 0)
+        {
+            printf("Time out waiting for BIT.\n");
+            exit(0);
+        }
+
+        if (status != OK)
+        {
+            printf("Built-in test failed - status %d.\n", status);
+            exit(0);
+        }
+        else
+        {
+            printf("Radio passes built-in test.\n\n");
+        }
+
+        // retrieve config from RCM
+        if (rcmConfigGet(&config) != 0)
+        {
+            printf("Time out waiting for config confirm.\n");
+            exit(0);
+        }
+
+        // print out configuration
+        printf("Configuration:\n");
+        printf("\tnodeId: %d\n", config.nodeId);
+        printf("\tintegrationIndex: %d\n", config.integrationIndex);
+        printf("\tantennaMode: %d\n", config.antennaMode);
+        printf("\tcodeChannel: %d\n", config.codeChannel);
+        printf("\telectricalDelayPsA: %d\n", config.electricalDelayPsA);
+        printf("\telectricalDelayPsB: %d\n", config.electricalDelayPsB);
+        printf("\tflags: 0x%X\n", config.flags);
+        printf("\ttxGain: %d\n", config.txGain);
+
+        // retrieve status/info from RCM
+        if (rcmStatusInfoGet(&statusInfo) != 0)
+        {
+            printf("Time out waiting for status info confirm.\n");
+            exit(0);
+        }
+
+        // print out status/info
+        printf("\nStatus/Info:\n");
+        printf("\tPackage version: %s\n", statusInfo.packageVersionStr);
+        printf("\tRCM version: %d.%d build %d\n", statusInfo.appVersionMajor,
+               statusInfo.appVersionMinor, statusInfo.appVersionBuild);
+        printf("\tUWB Kernel version: %d.%d build %d\n", statusInfo.uwbKernelVersionMajor,
+               statusInfo.uwbKernelVersionMinor, statusInfo.uwbKernelVersionBuild);
+        printf("\tFirmware version: %x/%x/%x ver %X\n", statusInfo.firmwareMonth,
+               statusInfo.firmwareDay, statusInfo.firmwareYear,
+               statusInfo.firmwareVersion);
+        printf("\tSerial number: %08X\n", statusInfo.serialNum);
+        printf("\tBoard revision: %c\n", statusInfo.boardRev);
+        printf("\tTemperature: %.2f degC\n\n", statusInfo.temperature / 4.0);
     }
-
-    // print out configuration
-    printf("Configuration:\n");
-    printf("\tnodeId: %d\n", config.nodeId);
-    printf("\tintegrationIndex: %d\n", config.integrationIndex);
-    printf("\tantennaMode: %d\n", config.antennaMode);
-    printf("\tcodeChannel: %d\n", config.codeChannel);
-    printf("\telectricalDelayPsA: %d\n", config.electricalDelayPsA);
-    printf("\telectricalDelayPsB: %d\n", config.electricalDelayPsB);
-    printf("\tflags: 0x%X\n", config.flags);
-    printf("\ttxGain: %d\n", config.txGain);
-
-    // retrieve status/info from RCM
-    if (rcmStatusInfoGet(&statusInfo) != 0)
-    {
-        printf("Time out waiting for status info confirm.\n");
-        exit(0);
-    }
-
-    // print out status/info
-    printf("\nStatus/Info:\n");
-    printf("\tPackage version: %s\n", statusInfo.packageVersionStr);
-    printf("\tRCM version: %d.%d build %d\n", statusInfo.appVersionMajor,
-        statusInfo.appVersionMinor, statusInfo.appVersionBuild);
-    printf("\tUWB Kernel version: %d.%d build %d\n", statusInfo.uwbKernelVersionMajor,
-        statusInfo.uwbKernelVersionMinor, statusInfo.uwbKernelVersionBuild);
-    printf("\tFirmware version: %x/%x/%x ver %X\n", statusInfo.firmwareMonth,
-        statusInfo.firmwareDay, statusInfo.firmwareYear,
-        statusInfo.firmwareVersion);
-    printf("\tSerial number: %08X\n", statusInfo.serialNum);
-    printf("\tBoard revision: %c\n", statusInfo.boardRev);
-    printf("\tTemperature: %.2f degC\n\n", statusInfo.temperature / 4.0);
 
     //initialize trilateration object
     trilat_Obj.initialize();
 
-    //Reset the intial position
-    for (int i = 0; i < 3; i++)
-    {
-        trilatPos[i] = 0;
-        initialPos[i] = 0;
-    }
+    long failedInitiationCount = 0;
 
     //get the initial position by multiple trilaterations
     for (int i = 0; i < TRILAT_TIMES; i++)
     {
+
         //do the trilateration everytime a quadruple of distances is aquired
         for (int nodeId = 1; nodeId < 5; nodeId++)
         {
@@ -280,24 +279,45 @@ int main(int argc, char *argv[])
             default:
                 break;
             }
+
+            //Make the measurement
             rcmRangeTo(destNodeId, RCM_ANTENNAMODE_TXA_RXA, 0, NULL, &rangeInfo, &dataInfo, &scanInfo, &fullScanInfo);
-            if ((rangeInfo.rangeMeasurementType & RCM_RANGE_TYPE_PRECISION) & (rangeInfo.precisionRangeMm < 15000))
-                tempDists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
+
+            //Value must be less than 15m
+            if ((rangeInfo.rangeMeasurementType & RCM_RANGE_TYPE_PRECISION) && (rangeInfo.precisionRangeMm < 15000))
+            {
+                if (i == 0)
+                    tempDists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
+                else if (abs(rangeInfo.precisionRangeMm / 1000.0 - tempDists[nodeId - 1]) < 1)
+                {
+                    tempDists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
+                }
+                else
+                {
+                    nodeId = 0;
+                    failedInitiationCount++;
+                    if (failedInitiationCount == 10)
+                    {
+                        //if failing to go a head due to too much difference with previous value, then previous range
+                        //appears to be wrong, reverse to previous update
+                        i--;
+                        failedInitiationCount = 0;
+                        continue;
+                    }
+                    continue;
+                }
+            }
             //if any ranging fails, restart from the 1st range
             else
             {
-                nodeId = 1;
+                nodeId = 0;
                 continue;
             }
         }
-        printf("iteration #%d, d1 = %f; d2 = %f; d3 = %f; d4 = %f\n", i, tempDists[0], tempDists[1], tempDists[2], tempDists[3]);
+        printf("iteration #%d:\td1 = %f, d2 = %f, d3 = %f, d4 = %f;\n", i, tempDists[0], tempDists[1], tempDists[2], tempDists[3]);
         //add up the measurements to cancel noise
         for (int j = 0; j < 4; j++)
             dists[j] += tempDists[j];
-        //dists[0] += tempDists[0];
-        //dists[1] += tempDists[1];
-        //dists[2] += tempDists[2];
-        //dists[3] += tempDists[3];
     }
 
     //averaging the measurements to get the initial position for the ekf
@@ -312,9 +332,14 @@ int main(int argc, char *argv[])
 
     //Assign initial positions and anchor locations to the ekf
     for (int i = 0; i < 12; i++)
-        ekf_Obj.ekf_P.ancs_InitialValue[i] = ancsTranspose[i];
+        ekf_Obj.ekf_rod_P.EKFOD_ancs[i] = ancsTranspose[i];
     for (int i = 0; i < 3; i++)
-        ekf_Obj.ekf_P.EKF_x_hat0[i] = initialPos[i];
+        ekf_Obj.ekf_rod_P.EKFOD_x_hat0[i] = initialPos[i];
+
+    //ekf_Obj.ekf_rod_P.R_InitialValue = 0.1;
+    ekf_Obj.ekf_rod_P.acc_xy_InitialValue = 5.0;
+    ekf_Obj.ekf_rod_P.acc_z_InitialValue = 2.0;
+
     //initialize ekf object
     ekf_Obj.initialize();
 
@@ -326,13 +351,14 @@ int main(int argc, char *argv[])
     // enter loop to a ranging a node and broadcasting the resulting range
     nodeRate = atoi(rcmEkfRate.data());
     ros::Rate rate(nodeRate);
+
     while(ros::ok())
     {
-        if (loopCount == 200)
+        if (loopCount == 500)
         {
             loopCount = 0;
             faultyRangingCount = 0;
-            lastRangingSuccesful = true;
+            //lastRangingSuccesful = true;
         }
         else
             loopCount++;
@@ -364,71 +390,74 @@ int main(int argc, char *argv[])
         //get the range to an anchor
         rcmRangeTo(destNodeId, RCM_ANTENNAMODE_TXA_RXA, 0, NULL, &rangeInfo, &dataInfo, &scanInfo, &fullScanInfo);
         //if measurement succeeds proceed to the ekf, otherwise move to the next anchor
-        if ((rangeInfo.rangeMeasurementType & RCM_RANGE_TYPE_PRECISION) & (rangeInfo.precisionRangeMm < 15000))
+        if ((rangeInfo.rangeMeasurementType & RCM_RANGE_TYPE_PRECISION))
         {
-            lastRangingSuccesful = true;
-
-            dists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
-
             //calculate deltat
             timeEnd = ros::Time::now();
             deltat = (timeEnd.sec - timeStart.sec) + (timeEnd.nsec - timeStart.nsec)*1e-6;
 
+            dists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
+
+            double rangeIsOutlier;
+
             //step the model
-            ekf_Obj.step(dists, deltat, 0, nodeId, x_est);
-
-            uwb_localization::rcmEkfStateMsg rcmEkfState;
-            rcmEkfState.x = x_est[0];
-            rcmEkfState.y = x_est[1];
-            rcmEkfState.z = x_est[2];
-            rcmEkfState.dx = x_est[3];
-            rcmEkfState.dy = x_est[4];
-            rcmEkfState.dz = x_est[5];
-            for(int i; i < 36; i++)
-                rcmEkfState.covariance[i] = ekf_Obj.ekf_DW.UnitDelay1_DSTATE[0];
-
-            rcmLocalizationPublisher.publish(rcmEkfState);
-
-            //if no error, print the estimated location to the screen, else exit program
-            if (rtmGetErrorStatus(ekf_Obj.getRTM()) == (NULL))
+            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, &rangeIsOutlier, 0.0);
+            if (rangeIsOutlier == 0)
             {
-                //Print the state to screen
-                printf("                                                                                                                                               \r");
-                printf("State vector: x = %7.4f; y = %7.4f; z = %7.4f; p1 = %7.4f; p2 = %7.4f; p3 = %7.4f, deltat = %7.4f, faultRate = %2.2f\r",
-                    x_est[0], x_est[1], x_est[2],
-                    ekf_Obj.ekf_B.P_pre[0],
-                    ekf_Obj.ekf_B.P_pre[7],
-                    ekf_Obj.ekf_B.P_pre[14],
-                    deltat,
-                    (faultyRangingCount/(double)loopCount)*100
-                    );
+                //if no error, print the estimated location to the screen, else exit program
+                if (rtmGetErrorStatus(ekf_Obj.getRTM()) == (NULL))
+                {
+                    //Print the state to screen
+                    //printf("                                                                                                                                               \r");
+                    if (lastRangingSuccesful)
+                        printf(KBLU"State vector: x = %7.4f; y = %7.4f; z = %7.4f; p1 = %7.4f; p2 = %7.4f; p3 = %7.4f, deltat = %7.4f, faultCount = %f\n"RESET,
+                               x_est[0], x_est[1], x_est[2],
+                                ekf_Obj.ekf_rod_B.P_pre[0],
+                                ekf_Obj.ekf_rod_B.P_pre[7],
+                                ekf_Obj.ekf_rod_B.P_pre[14],
+                                deltat,
+                                faultyRangingCount / (double)loopCount * 100
+                                );
+                    else
+                        printf(KYEL"\nSTATE VECTOR: X = %7.4f; Y = %7.4f; Z = %7.4f; P1 = %7.4f; P2 = %7.4f; P3 = %7.4f, DELTAT = %7.4f, FAULTCOUNT = %f\n\n"RESET,
+                               x_est[0], x_est[1], x_est[2],
+                                ekf_Obj.ekf_rod_B.P_pre[0],
+                                ekf_Obj.ekf_rod_B.P_pre[7],
+                                ekf_Obj.ekf_rod_B.P_pre[14],
+                                deltat,
+                                faultyRangingCount / (double)loopCount * 100
+                                );
+                    lastRangingSuccesful = true;
+                }
+                else
+                {
+                    printf("Error in ekf model, abandon operation! Press any key to exit.");
+                    getchar();
+                    break;
+                }
             }
             else
             {
-                printf("Error in ekf model, abandon operation! Press any key to exit.");
-                getchar();
-                break;
+                lastRangingSuccesful = false;
+                //faultyRangingCount++;
             }
         }
         else
         {
             //Raise this flag to not to reset timer on next loop
             lastRangingSuccesful = false;
-            faultyRangingCount++;
+            //faultyRangingCount++;
         }
 
         nodeId++;
         if (nodeId > 4)
             nodeId = 1;
-
-        rate.sleep();
+        //Sleep(80);
     }
 
     //cleanup
     ekf_Obj.terminate();
-    trilat_Obj.terminate();
     getchar();
     rcmIfClose();
     return 0;
 }
-
