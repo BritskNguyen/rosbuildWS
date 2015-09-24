@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
     rcmMsg_DataInfo dataInfo;
     rcmMsg_ScanInfo scanInfo;
     rcmMsg_FullScanInfo fullScanInfo;
-    ofstream fout;
+    ofstream fout("/home/britsk/rosbuildWS/sandbox/uwb_localization/log/ekfmflog.m");
 
     //initialize P410 serial interface
     {
@@ -347,9 +347,9 @@ int main(int argc, char *argv[])
         ekf_Obj.ekf_mf_P.ancs[i] = ancsTranspose[i];
     for (int i = 0; i < 3; i++)
         ekf_Obj.ekf_mf_P.ekf_mf_x_hat0[i] = initialPos[i];
-    ekf_Obj.ekf_mf_P.R_InitialValue = 0.08;
-    ekf_Obj.ekf_mf_P.acc_xy_InitialValue = 7.5;
-    ekf_Obj.ekf_mf_P.acc_z_InitialValue = 0.5;
+    ekf_Obj.ekf_mf_P.R_InitialValue = 0.1;
+    ekf_Obj.ekf_mf_P.acc_xy_InitialValue = 5.0;
+    ekf_Obj.ekf_mf_P.acc_z_InitialValue = 2.0;
     for (int i = 0; i < 5; i++)
     {
         ekf_Obj.ekf_mf_P.initDists_InitialValue[i * 4] = dists[0];
@@ -428,12 +428,12 @@ int main(int argc, char *argv[])
         {
             //calculate deltat
             timeEnd = ros::Time::now();
-            deltat = (timeEnd.sec - timeStart.sec) + (timeEnd.nsec - timeStart.nsec)*1e-9;
+            deltat = (ros::Time::now() - timeStart).toSec();
 
             dists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
 
             //step the model
-            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, 1.0, 3.0);
+            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, 0.0, 3.0);
 
             //Print and log state values
             if (lastRangingSuccesful)
