@@ -54,8 +54,11 @@
 #include "rcm.h"
 
 //ekf ert generated code
-#include "ekf_rod.h"
+#include "ekf_mf.h"
 #include "trilat.h"
+
+//log file
+#include <fstream>
 
 //_____________________________________________________________________________
 //
@@ -89,14 +92,15 @@
 //_____________________________________________________________________________
 
 //initial conditions for the ekf
-static ekfModelClass ekf_Obj;
+static ekf_mfClass ekf_Obj;
 static double ancs[12] =
 {
     -3.0, 3.0, 3.0, -3.0,
     -3.0, -3.0, 3.0, 3.0,
-    -1.71, -0.1, -1.31, -0.23
+    //-1.78, -1.21, -1.31, -1.31
+    -1.78, -0.1 , -1.31, -0.21
 };
-//static double R = 0.2;
+static double R = 0.2;
 //inputs for the ekf
 static double dists[4] = { 0, 0, 0, 0 };
 static double deltat = 0;
@@ -164,6 +168,7 @@ int main(int argc, char *argv[])
     rcmMsg_DataInfo dataInfo;
     rcmMsg_ScanInfo scanInfo;
     rcmMsg_FullScanInfo fullScanInfo;
+    ofstream fout;
 
     //initialize P410 serial interface
     {
@@ -252,6 +257,13 @@ int main(int argc, char *argv[])
     //initialize trilateration object
     trilat_Obj.initialize();
 
+    //Reset the intial position
+    for (int i = 0; i < 3; i++)
+    {
+        trilatPos[i] = 0;
+        initialPos[i] = 0;
+    }
+
     long failedInitiationCount = 0;
 
     //get the initial position by multiple trilaterations
@@ -332,20 +344,42 @@ int main(int argc, char *argv[])
 
     //Assign initial positions and anchor locations to the ekf
     for (int i = 0; i < 12; i++)
-        ekf_Obj.ekf_rod_P.EKFOD_ancs[i] = ancsTranspose[i];
+        ekf_Obj.ekf_mf_P.ancs[i] = ancsTranspose[i];
     for (int i = 0; i < 3; i++)
-        ekf_Obj.ekf_rod_P.EKFOD_x_hat0[i] = initialPos[i];
-
-    //ekf_Obj.ekf_rod_P.R_InitialValue = 0.1;
-    ekf_Obj.ekf_rod_P.acc_xy_InitialValue = 5.0;
-    ekf_Obj.ekf_rod_P.acc_z_InitialValue = 2.0;
+        ekf_Obj.ekf_mf_P.ekf_mf_x_hat0[i] = initialPos[i];
+    ekf_Obj.ekf_mf_P.R_InitialValue = 0.08;
+    ekf_Obj.ekf_mf_P.acc_xy_InitialValue = 7.5;
+    ekf_Obj.ekf_mf_P.acc_z_InitialValue = 0.5;
+    for (int i = 0; i < 5; i++)
+    {
+        ekf_Obj.ekf_mf_P.initDists_InitialValue[i * 4] = dists[0];
+        ekf_Obj.ekf_mf_P.initDists_InitialValue[i * 4 + 1] = dists[1];
+        ekf_Obj.ekf_mf_P.initDists_InitialValue[i * 4 + 2] = dists[2];
+        ekf_Obj.ekf_mf_P.initDists_InitialValue[i * 4 + 3] = dists[3];
+    }
 
     //initialize ekf object
     ekf_Obj.initialize();
 
+    fout << "i=" << 1 << "; d=" << dists[0] << "; x=" << initialPos[0] << "; y=" << initialPos[1] << "; z=" << initialPos[2] << "; ";
+    fout << "p1=" << ekf_Obj.ekf_mf_P.P_0[0] << "; p2=" << ekf_Obj.ekf_mf_P.P_0[7] << "; p3=" << ekf_Obj.ekf_mf_P.P_0[14] << "; ";
+    fout << "dt=" << deltat << "; loss=" << 0 << "; " << endl;
+
+    fout << "i=" << 2 << "; d=" << dists[1] << "; x=" << initialPos[0] << "; y=" << initialPos[1] << "; z=" << initialPos[2] << "; ";
+    fout << "p1=" << ekf_Obj.ekf_mf_P.P_0[0] << "; p2=" << ekf_Obj.ekf_mf_P.P_0[7] << "; p3=" << ekf_Obj.ekf_mf_P.P_0[14] << "; ";
+    fout << "dt=" << deltat << "; loss=" << 0 << "; " << endl;
+
+    fout << "i=" << 3 << "; d=" << dists[2] << "; x=" << initialPos[0] << "; y=" << initialPos[1] << "; z=" << initialPos[2] << "; ";
+    fout << "p1=" << ekf_Obj.ekf_mf_P.P_0[0] << "; p2=" << ekf_Obj.ekf_mf_P.P_0[7] << "; p3=" << ekf_Obj.ekf_mf_P.P_0[14] << "; ";
+    fout << "dt=" << deltat << "; loss=" << 0 << "; " << endl;
+
+    fout << "i=" << 4 << "; d=" << dists[3] << "; x=" << initialPos[0] << "; y=" << initialPos[1] << "; z=" << initialPos[2] << "; ";
+    fout << "p1=" << ekf_Obj.ekf_mf_P.P_0[0] << "; p2=" << ekf_Obj.ekf_mf_P.P_0[7] << "; p3=" << ekf_Obj.ekf_mf_P.P_0[14] << "; ";
+    fout << "dt=" << deltat << "; loss=" << 0 << "; " << endl;
+
     nodeId = 1;
     bool lastRangingSuccesful = true;
-    int loopCount = 0;
+    int loopCount = 1;
     int faultyRangingCount = 0;
 
     // enter loop to a ranging a node and broadcasting the resulting range
@@ -354,7 +388,7 @@ int main(int argc, char *argv[])
 
     while(ros::ok())
     {
-        if (loopCount == 500)
+        if (loopCount > 500)
         {
             loopCount = 0;
             faultyRangingCount = 0;
@@ -390,64 +424,50 @@ int main(int argc, char *argv[])
         //get the range to an anchor
         rcmRangeTo(destNodeId, RCM_ANTENNAMODE_TXA_RXA, 0, NULL, &rangeInfo, &dataInfo, &scanInfo, &fullScanInfo);
         //if measurement succeeds proceed to the ekf, otherwise move to the next anchor
-        if ((rangeInfo.rangeMeasurementType & RCM_RANGE_TYPE_PRECISION))
+        if ((rangeInfo.rangeMeasurementType & RCM_RANGE_TYPE_PRECISION) && rangeInfo.precisionRangeMm < 12000)
         {
             //calculate deltat
             timeEnd = ros::Time::now();
-            deltat = (timeEnd.sec - timeStart.sec) + (timeEnd.nsec - timeStart.nsec)*1e-6;
+            deltat = (timeEnd.sec - timeStart.sec) + (timeEnd.nsec - timeStart.nsec)*1e-9;
 
             dists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
 
-            double rangeIsOutlier;
-
             //step the model
-            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, &rangeIsOutlier, 0.0);
-            if (rangeIsOutlier == 0)
-            {
-                //if no error, print the estimated location to the screen, else exit program
-                if (rtmGetErrorStatus(ekf_Obj.getRTM()) == (NULL))
-                {
-                    //Print the state to screen
-                    //printf("                                                                                                                                               \r");
-                    if (lastRangingSuccesful)
-                        printf(KBLU"State vector: x = %7.4f; y = %7.4f; z = %7.4f; p1 = %7.4f; p2 = %7.4f; p3 = %7.4f, deltat = %7.4f, faultCount = %f\n"RESET,
-                               x_est[0], x_est[1], x_est[2],
-                                ekf_Obj.ekf_rod_B.P_pre[0],
-                                ekf_Obj.ekf_rod_B.P_pre[7],
-                                ekf_Obj.ekf_rod_B.P_pre[14],
-                                deltat,
-                                faultyRangingCount / (double)loopCount * 100
-                                );
-                    else
-                        printf(KYEL"\nSTATE VECTOR: X = %7.4f; Y = %7.4f; Z = %7.4f; P1 = %7.4f; P2 = %7.4f; P3 = %7.4f, DELTAT = %7.4f, FAULTCOUNT = %f\n\n"RESET,
-                               x_est[0], x_est[1], x_est[2],
-                                ekf_Obj.ekf_rod_B.P_pre[0],
-                                ekf_Obj.ekf_rod_B.P_pre[7],
-                                ekf_Obj.ekf_rod_B.P_pre[14],
-                                deltat,
-                                faultyRangingCount / (double)loopCount * 100
-                                );
-                    lastRangingSuccesful = true;
-                }
-                else
-                {
-                    printf("Error in ekf model, abandon operation! Press any key to exit.");
-                    getchar();
-                    break;
-                }
-            }
+            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, 1.0, 3.0);
+
+            //Print and log state values
+            if (lastRangingSuccesful)
+                printf("i=[i %d]; d=[d %6.4f]; x=[x %6.4f]; y=[y %6.4f]; z=[z %6.4f]; p1=[p1 %6.4f]; p2=[p2 %6.4f]; p3=[p3 %6.4f]; dt=[dt %6.4f]; loss=[loss %4.2f];\n",
+                       nodeId,
+                       dists[nodeId - 1],
+                        x_est[0], x_est[1], x_est[2],
+                        ekf_Obj.ekf_mf_B.P_pre[0],
+                        ekf_Obj.ekf_mf_B.P_pre[7],
+                        ekf_Obj.ekf_mf_B.P_pre[14],
+                        deltat,
+                        faultyRangingCount / (double)loopCount * 100
+                        );
             else
-            {
-                lastRangingSuccesful = false;
-                //faultyRangingCount++;
-            }
+                printf("\nI=[I %d]; D=[D %6.4f]; X=[X %6.4f]; Y=[Y %6.4f]; Z=[Z %6.4f]; P1=[P1 %6.4f]; P2=[P2 %6.4f]; P3=[P3 %6.4f]; DT=[DT %6.4f]; LOSS=[LOSS %4.2f];\n\n",
+                       nodeId,
+                       dists[nodeId - 1],
+                        x_est[0], x_est[1], x_est[2],
+                        ekf_Obj.ekf_mf_B.P_pre[0],
+                        ekf_Obj.ekf_mf_B.P_pre[7],
+                        ekf_Obj.ekf_mf_B.P_pre[14],
+                        deltat,
+                        faultyRangingCount / (double)loopCount * 100
+                        );
+
+            fout << "i = [i " << nodeId << "]; d = [d " << dists[nodeId - 1] << "]; x = [x " << x_est[0] << "]; y = [y " << x_est[1] << "]; z = [z " << x_est[2] << "]; ";
+            fout << "p1 = [p1 " << ekf_Obj.ekf_mf_B.P_pre[0] << "]; p2 = [p2 "<<ekf_Obj.ekf_mf_B.P_pre[7]<<"]; p3 = [p3 "<<ekf_Obj.ekf_mf_B.P_pre[14]<<"]; ";
+            fout << "dt = [dt "<<deltat<<"]; loss = [loss "<<faultyRangingCount / (double)loopCount * 100<<"]; " << endl;
+
+            lastRangingSuccesful = true;
         }
         else
-        {
             //Raise this flag to not to reset timer on next loop
             lastRangingSuccesful = false;
-            //faultyRangingCount++;
-        }
 
         nodeId++;
         if (nodeId > 4)

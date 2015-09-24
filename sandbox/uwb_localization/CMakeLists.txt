@@ -24,7 +24,7 @@ rosbuild_genmsg()
 SET(UWB_SRCS 
         src/rcm.c    
 	src/rcmIf.c
-	src/ekf_rod.cpp
+	src/ekf_mf.cpp
 	src/trilat.cpp
 )
 

@@ -3,8 +3,8 @@
 
  <!-- rcmEkfLocalization node -->
   <node respawn="true" pkg="uwb_localization"
-        type="uwb_localization_node" name="uwb_localization_node0" >
-    <param name="rcmSerialPort" type="string" value="/dev/ttyUSB0" />
+        type="uwb_localization_node" name="uwb_localization_node0" output="screen">
+    <param name="rcmSerialPort" type="string" value="/dev/ttyACM0" />
 	<param name="rcmLocalizationRate" type="string" value="10"/>
   </node>
   
