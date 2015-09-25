@@ -97,8 +97,8 @@ static double ancs[12] =
 {
     -3.0, 3.0, 3.0, -3.0,
     -3.0, -3.0, 3.0, 3.0,
-    //-1.78, -1.21, -1.31, -1.31
-    -1.78, -0.1 , -1.31, -0.21
+    -1.78, -1.21, -1.31, -1.31
+    //-1.78, -0.1 , -1.31, -0.21
 };
 static double R = 0.2;
 //inputs for the ekf
@@ -115,13 +115,30 @@ static trilatModelClass trilat_Obj;
 static double ancsTranspose[12] =
 {
     -3.0, -3.0, -1.71,
-    3.0, -3.0, -0.1,
+    3.0, -3.0, -1.21,
     3.0, 3.0, -1.31,
-    -3.0, 3.0, -0.23
+    -3.0, 3.0, -1.31
 };
 static double tempDists[4] = { 0, 0, 0, 0 };//{ 7.51, 13.03, 12.69, 6.90 };
 static double trilatPos[3] = { 0, 0, 0 };
 static double initialPos[3];
+
+static uint8_T uwb2FccBuff[32];
+#define U2F_HEADER1     (uint8_T)0x46;  //'F'
+#define U2F_HEADER2     (uint8_T)0x43;  //'C'
+#define U2F_ID          (*(uint8_T *)(uwb2FccBuff + 2))
+#define U2F_LENGTH      (*(uint8_T *)(uwb2FccBuff + 3))
+#define U2F_X           (*(uint8_T *)(uwb2FccBuff + 4))
+#define U2F_Y           (*(uint8_T *)(uwb2FccBuff + 8))
+#define U2F_Z           (*(uint8_T *)(uwb2FccBuff + 12))
+#define U2F_DX          (*(uint8_T *)(uwb2FccBuff + 16))
+#define U2F_DY          (*(uint8_T *)(uwb2FccBuff + 20))
+#define U2F_DZ          (*(uint8_T *)(uwb2FccBuff + 24))
+#define U2F_REV1        (*(uint8_T *)(uwb2FccBuff + 28))
+#define U2F_REV2        (*(uint8_T *)(uwb2FccBuff + 29))
+#define U2F_CS1         (*(uint8_T *)(uwb2FccBuff + 30))
+#define U2F_CS2         (*(uint8_T *)(uwb2FccBuff + 31))
+#define ID_TO_RES2_LENGTH   27
 
 //_____________________________________________________________________________
 //
@@ -137,8 +154,8 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-	//Create ros handler to node
-	ros::init(argc, argv, "uwb_localization");
+    //Create ros handler to node
+    ros::init(argc, argv, "uwb_localization");
     ros::NodeHandle rcmEkfNodeHandle("~");
     string serialPortName = string(DFLT_PORT);
     string rcmEkfRate = string(DFLT_NODE_RATE);
@@ -196,6 +213,7 @@ int main(int argc, char *argv[])
             printf("Time out waiting for opmode set.\n");
             exit(0);
         }
+
 
         // execute Built-In Test - verify that radio is healthy
         if (rcmBit(&status) != 0)
@@ -347,7 +365,7 @@ int main(int argc, char *argv[])
         ekf_Obj.ekf_mf_P.ancs[i] = ancsTranspose[i];
     for (int i = 0; i < 3; i++)
         ekf_Obj.ekf_mf_P.ekf_mf_x_hat0[i] = initialPos[i];
-    ekf_Obj.ekf_mf_P.R_InitialValue = 0.1;
+    ekf_Obj.ekf_mf_P.R_InitialValue = 0.04;
     ekf_Obj.ekf_mf_P.acc_xy_InitialValue = 5.0;
     ekf_Obj.ekf_mf_P.acc_z_InitialValue = 2.0;
     for (int i = 0; i < 5; i++)
@@ -458,6 +476,39 @@ int main(int argc, char *argv[])
                         deltat,
                         faultyRangingCount / (double)loopCount * 100
                         );
+
+            //Prepare the frame to send to FCC
+            U2F_ID      +=U2F_ID;
+            U2F_LENGTH  = 26;
+            U2F_X       = (float)x_est[0];
+            U2F_Y       = (float)x_est[1];
+            U2F_Z       = (float)x_est[2];
+            U2F_DX      = (float)x_est[3];
+            U2F_DY      = (float)x_est[4];
+            U2F_DZ      = (float)x_est[5];
+
+            //Find the maximum covariance of postions
+            double maxP = ekf_Obj.ekf_mf_B.P_pre[0];
+            if(maxP < ekf_Obj.ekf_mf_B.P_pre[1])
+                maxP = ekf_Obj.ekf_mf_B.P_pre[1];
+            if(maxP < ekf_Obj.ekf_mf_B.P_pre[2])
+                maxP = ekf_Obj.ekf_mf_B.P_pre[2];
+
+            uint16_T ambiRadius = (uint16_T)sqrt(2*maxP);;
+
+            //Sphere of ambiguity
+            U2F_REV1    = (uint8_t)(ambiRadius & 0x0F);
+            U2F_REV2    = (uint8_t)ambiRadius>>8;
+
+            //Checksum
+            uint8_t CSA = 0, CSB = 0;
+            for (uint8_T i = 0; i < ID_TO_RES2_LENGTH; i++)
+            {
+                CSA = CSA + uwb2FccBuff[2+i];
+                CSB = CSB + CSA;
+            }
+            U2F_CS1 = CSA;
+            U2F_CS2 = CSB;
 
             fout << "i = [i " << nodeId << "]; d = [d " << dists[nodeId - 1] << "]; x = [x " << x_est[0] << "]; y = [y " << x_est[1] << "]; z = [z " << x_est[2] << "]; ";
             fout << "p1 = [p1 " << ekf_Obj.ekf_mf_B.P_pre[0] << "]; p2 = [p2 "<<ekf_Obj.ekf_mf_B.P_pre[7]<<"]; p3 = [p3 "<<ekf_Obj.ekf_mf_B.P_pre[14]<<"]; ";
