@@ -114,12 +114,12 @@ int main(int argc, char **argv)
 	int fd = -1;
 	struct termios newtio;
 	struct sigaction saio;           //definition of signal action
-	FILE *fpSerial = NULL;
+    FILE *fpSerial = NULL;
 
 	//Open the serial port as a file descriptor for low level configuration
 	//read/write, not controlling terminal for process,
-	fd = open(serialPortName.data(), O_RDWR | O_NOCTTY | O_NDELAY);	//program won't be blocked during read
-	//fd = open(DEFAULT_PORT, O_RDONLY | O_NOCTTY);			//program will be blocked in during read
+    //fd = open(serialPortName.data(), O_RDWR | O_NOCTTY | O_NDELAY);	//program won't be blocked during read
+    fd = open(serialPortName.data(), O_RDONLY | O_NOCTTY);			//program will be blocked in during read
 	if ( fd < 0 )
 	{
 		printf(KRED "serialInit: Could not open serial device %s\n" RESET, serialPortName.data());

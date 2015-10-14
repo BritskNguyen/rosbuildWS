@@ -82,9 +82,33 @@
 
 //_____________________________________________________________________________
 //
-// typedefs
+// Vicon defines
 //_____________________________________________________________________________
+#define BAUDRATE		57600
+#define BAUD_MACRO		B57600
+#define DFLT_PORT	"/dev/ttyUSB0"
+#define RCV_THRESHOLD	40					//Receive frame's length
+#define FPS				40					//Frames per second
+#define	UP				0xFF
+#define DOWN			0x00
+#define HEADER_NAN		0x7FAAAAAA
 
+uint8_t		frame32[RCV_THRESHOLD];
+uint8_t		rcvdFrame[RCV_THRESHOLD];
+uint8_t		backupFrame[RCV_THRESHOLD];
+uint8_t		flagIncompleteFrame = 0;
+int			rcvdBytesCount = 0;
+uint8_t		backupRcvBytesCount = 0;
+uint8_t		misAlgnFlag = DOWN;
+uint8_t		msgFlag = DOWN;
+uint8_t		viconUpdateFlag = DOWN;
+uint8_t		headerIndex = 0xFF;
+float viconX , viconY, viconZ, viconXd, viconYd, viconZd;
+
+void signal_handler_IO(int status)
+{
+    msgFlag = UP;
+}
 
 //_____________________________________________________________________________
 //
@@ -97,7 +121,7 @@ static double ancs[12] =
 {
     -3.0, 3.0, 3.0, -3.0,
     -3.0, -3.0, 3.0, 3.0,
-    -1.78, -1.21, -1.31, -1.31
+    -1.78, -1.15, -1.31, -1.31
     //-1.78, -0.1 , -1.31, -0.21
 };
 static double R = 0.2;
@@ -115,9 +139,9 @@ static trilatModelClass trilat_Obj;
 static double ancsTranspose[12] =
 {
     -3.0, -3.0, -1.71,
-    3.0, -3.0, -1.21,
+    3.0, -3.0, -1.15,/*-0.1,//*/
     3.0, 3.0, -1.31,
-    -3.0, 3.0, -1.31
+    -3.0, 3.0, -1.31/*-0.21//*/
 };
 static double tempDists[4] = { 0, 0, 0, 0 };//{ 7.51, 13.03, 12.69, 6.90 };
 static double trilatPos[3] = { 0, 0, 0 };
@@ -156,11 +180,12 @@ int main(int argc, char *argv[])
 {
     //Create ros handler to node
     ros::init(argc, argv, "uwb_localization");
-    ros::NodeHandle rcmEkfNodeHandle("~");
+    ros::NodeHandle uwbViconNodeHandle("~");
     string serialPortName = string(DFLT_PORT);
     string rcmEkfRate = string(DFLT_NODE_RATE);
     uint32_T nodeRate = 10;
-    if(rcmEkfNodeHandle.getParam("rcmSerialPort", serialPortName))
+
+    if(uwbViconNodeHandle.getParam("rcmSerialPort", serialPortName))
         printf(KBLU"Retrieved value %s for param 'rcmSerialPort'!\n"RESET, serialPortName.data());
     else
     {
@@ -169,11 +194,94 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    if(rcmEkfNodeHandle.getParam("rcmLocalizationRate", rcmEkfRate))
+    if(uwbViconNodeHandle.getParam("rcmLocalizationRate", rcmEkfRate))
         printf(KBLU"Retrieved value %s for param 'rcmLocalizationRate'\n"RESET, rcmEkfRate.data());
     else
         printf(KYEL "Couldn't retrieve param 'rcmLocalizationRate', applying default value %sHz\n"RESET, rcmEkfRate.data());
-    ros::Publisher rcmLocalizationPublisher = rcmEkfNodeHandle.advertise<uwb_localization::rcmEkfStateMsg>("rcmEkfTopic", 1);
+
+//-------------------------------------Vicon Serial Parameter Collection-------------------------------------------
+    string viconSerialPortName = string(DFLT_PORT);
+    bool handshakingMode = true;
+    if(uwbViconNodeHandle.getParam("viconSerialPort", viconSerialPortName))
+        printf(KBLU"Retrieved value %s for param 'viconSerialPort'!\n"RESET, viconSerialPortName.data());
+    else
+    {
+        printf(KRED "Couldn't retrieve param 'viconSerialPort', program closed!\n"RESET);
+        return 0;
+    }
+
+    if(uwbViconNodeHandle.getParam("viconhandshakingModeEnabled", handshakingMode))
+    {
+        if(handshakingMode)
+            printf(KBLU"Retrieved value 'true' for param 'viconhandshakingModeEnabled'\n"RESET);
+        else
+            printf(KBLU"Retrieved value 'false' for param 'viconhandshakingModeEnabled'\n"RESET);
+    }
+    else
+        printf(KBLU"Couldn't retrieve param 'viconhandshakingModeEnabled'. Using default mode with handshake\n"RESET);
+
+//-------------------Initialize Vicon Serial Connection---------------------------------------------------
+    int fd = -1;
+    struct termios newtio;
+    struct sigaction saio;           //definition of signal action
+    FILE *fpSerial = NULL;
+
+    //Open the serial port as a file descriptor for low level configuration
+    //read/write, not controlling terminal for process,
+    //fd = open(viconSerialPortName.data(), O_RDWR | O_NOCTTY | O_NDELAY);	//program won't be blocked during read
+    fd = open(viconSerialPortName.data(), O_RDWR | O_NOCTTY);			//program will be blocked in during read
+    if ( fd < 0 )
+    {
+        printf(KRED "serialInit: Could not open serial device %s\n" RESET, viconSerialPortName.data());
+        return 0;
+    }
+
+    //Install the signal handler before making the device asynchronous
+    saio.sa_handler = signal_handler_IO;
+    sigemptyset(&saio.sa_mask);
+    saio.sa_flags = 0;
+    saio.sa_restorer = NULL;
+    sigaction(SIGIO,&saio,NULL);
+
+    //allow the process to receive SIGIO
+    fcntl(fd, F_SETOWN, getpid());
+    //Make the file descriptor asynchronous
+    fcntl(fd, F_SETFL, O_ASYNC);
+
+    //Set up serial settings
+    memset(&newtio, 0,sizeof(newtio));
+    newtio.c_cflag =  CS8 | CLOCAL | CREAD;		//no parity, 1 stop bit
+    newtio.c_iflag |= IGNBRK;  					//ignore break condition
+    newtio.c_oflag = 0;							//all options off
+    //set input mode (non-canonical, no echo,...)
+    newtio.c_lflag = 0;
+    //non-canonical condition, RCV_THRESHOLD is the number of bytes to return
+    newtio.c_cc[VTIME] = 0;
+    newtio.c_cc[VMIN] = RCV_THRESHOLD;
+
+    //Flush the residual data and activate new settings
+    tcflush(fd, TCIFLUSH);
+    if (cfsetispeed(&newtio, BAUD_MACRO) < 0 || cfsetospeed(&newtio, BAUD_MACRO) < 0)
+    {
+        printf(KRED"Cannot set baudrate for %s\n", serialPortName.data());
+        close(fd);
+        return 0;
+    }
+    else
+    {
+        tcsetattr(fd, TCSANOW, &newtio);
+        tcflush(fd, TCIOFLUSH);
+        printf(KBLU "Connection established\n\n" RESET);
+    }
+    //Open file as a standard I/O stream
+    fpSerial = fdopen(fd, "r+");
+    if (!fpSerial)
+    {
+        printf(KRED "serialInit: Failed to open %s as serial stream\n" RESET, serialPortName.data());
+        fpSerial = NULL;
+    }
+        tcflush(fd, TCIOFLUSH);
+//-----------------------------------vicon Serial Initialization Done-------------------------------------
 
     int destNodeId;
     ros::Time timeStart, timeEnd;
@@ -187,7 +295,7 @@ int main(int argc, char *argv[])
     rcmMsg_FullScanInfo fullScanInfo;
     ofstream fout("/home/britsk/rosbuildWS/sandbox/uwb_localization/log/ekfmflog.m");
 
-    //initialize P410 serial interface
+//----------------------------------initialize P410 serial interface--------------------------------------
     {
         printf("RCM Sample App\n\n");
 
@@ -271,6 +379,7 @@ int main(int argc, char *argv[])
         printf("\tBoard revision: %c\n", statusInfo.boardRev);
         printf("\tTemperature: %.2f degC\n\n", statusInfo.temperature / 4.0);
     }
+//---------------------------------------------P410 serial interface initialization done-------------------------------
 
     //initialize trilateration object
     trilat_Obj.initialize();
@@ -381,19 +490,23 @@ int main(int argc, char *argv[])
 
     fout << "i=" << 1 << "; d=" << dists[0] << "; x=" << initialPos[0] << "; y=" << initialPos[1] << "; z=" << initialPos[2] << "; ";
     fout << "p1=" << ekf_Obj.ekf_mf_P.P_0[0] << "; p2=" << ekf_Obj.ekf_mf_P.P_0[7] << "; p3=" << ekf_Obj.ekf_mf_P.P_0[14] << "; ";
+    fout << "X=" << initialPos[0] << "; Y=" << initialPos[1] << "; Z=" << initialPos[2] << "; ";
     fout << "dt=" << deltat << "; loss=" << 0 << "; " << endl;
 
-    fout << "i=" << 2 << "; d=" << dists[1] << "; x=" << initialPos[0] << "; y=" << initialPos[1] << "; z=" << initialPos[2] << "; ";
-    fout << "p1=" << ekf_Obj.ekf_mf_P.P_0[0] << "; p2=" << ekf_Obj.ekf_mf_P.P_0[7] << "; p3=" << ekf_Obj.ekf_mf_P.P_0[14] << "; ";
-    fout << "dt=" << deltat << "; loss=" << 0 << "; " << endl;
+    fout << "i=[i " << 2 << "]; d=[d " << dists[1] << "]; x=[x " << initialPos[0] << "]; y=[y " << initialPos[1] << "]; z=[z " << initialPos[2] << "]; ";
+    fout << "p1=[p1" << ekf_Obj.ekf_mf_P.P_0[0] << "]; p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "]; p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "]; ";
+    fout << "X=[X " << initialPos[0] << "]; Y=[Y " << initialPos[1] << "]; Z=[Z " << initialPos[2] << "]; ";
+    fout << "dt=[dt" << deltat << "]; loss=[loss " << 0 << "]; " << endl;
 
-    fout << "i=" << 3 << "; d=" << dists[2] << "; x=" << initialPos[0] << "; y=" << initialPos[1] << "; z=" << initialPos[2] << "; ";
-    fout << "p1=" << ekf_Obj.ekf_mf_P.P_0[0] << "; p2=" << ekf_Obj.ekf_mf_P.P_0[7] << "; p3=" << ekf_Obj.ekf_mf_P.P_0[14] << "; ";
-    fout << "dt=" << deltat << "; loss=" << 0 << "; " << endl;
+    fout << "i=[i" << 3 << "]; d=[d " << dists[2] << "]; x=[x " << initialPos[0] << "]; y=[y " << initialPos[1] << "]; z=[z " << initialPos[2] << "]; ";
+    fout << "p1=[p1" << ekf_Obj.ekf_mf_P.P_0[0] << "]; p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "]; p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "]; ";
+    fout << "X=[X " << initialPos[0] << "]; Y=[Y " << initialPos[1] << "]; Z=[Z " << initialPos[2] << "]; ";
+    fout << "dt=[dt" << deltat << "]; loss=[loss " << 0 << "]; " << endl;
 
-    fout << "i=" << 4 << "; d=" << dists[3] << "; x=" << initialPos[0] << "; y=" << initialPos[1] << "; z=" << initialPos[2] << "; ";
-    fout << "p1=" << ekf_Obj.ekf_mf_P.P_0[0] << "; p2=" << ekf_Obj.ekf_mf_P.P_0[7] << "; p3=" << ekf_Obj.ekf_mf_P.P_0[14] << "; ";
-    fout << "dt=" << deltat << "; loss=" << 0 << "; " << endl;
+    fout << "i=[i" << 4 << "]; d=[d " << dists[3] << "]; x=[x " << initialPos[0] << "]; y=[y " << initialPos[1] << "]; z=[z " << initialPos[2] << "]; ";
+    fout << "p1=[p1" << ekf_Obj.ekf_mf_P.P_0[0] << "]; p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "]; p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "]; ";
+    fout << "X=[X " << initialPos[0] << "]; Y=[Y " << initialPos[1] << "]; Z=[Z " << initialPos[2] << "]; ";
+    fout << "dt=[dt" << deltat << "]; loss=[loss " << 0 << "]; " << endl;
 
     nodeId = 1;
     bool lastRangingSuccesful = true;
@@ -403,7 +516,6 @@ int main(int argc, char *argv[])
     // enter loop to a ranging a node and broadcasting the resulting range
     nodeRate = atoi(rcmEkfRate.data());
     ros::Rate rate(nodeRate);
-
     while(ros::ok())
     {
         if (loopCount > 500)
@@ -439,9 +551,97 @@ int main(int argc, char *argv[])
             break;
         }
 
+        //Send request to vicon
+        if(handshakingMode)
+            write(fd,"d", 1);
+
         //get the range to an anchor
         rcmRangeTo(destNodeId, RCM_ANTENNAMODE_TXA_RXA, 0, NULL, &rangeInfo, &dataInfo, &scanInfo, &fullScanInfo);
-        //if measurement succeeds proceed to the ekf, otherwise move to the next anchor
+
+        //Check if vicon data has arrived
+        if(msgFlag == UP)
+        {
+            msgFlag = DOWN;
+            rcvdBytesCount = read(fd,rcvdFrame, RCV_THRESHOLD);
+            //First, check if read is successful
+            if(rcvdBytesCount == -1)
+            {
+                printf(KBLU "Error reading vicon message... :( \n" RESET);
+            }
+            //Second check if read returns full frame
+            else if(rcvdBytesCount < RCV_THRESHOLD)
+            {
+                printf(KRED "%d\n" RESET, rcvdBytesCount);
+                printf(KRED "Only %d/%d bytes! There's some problem with communication.. >,< \n" RESET, rcvdBytesCount, RCV_THRESHOLD);
+
+            }
+            //Third, checkk if frame is valid
+            else
+            {
+                //Tracing the header
+                if(*(uint32_t *)(rcvdFrame) != (HEADER_NAN))
+                {
+                    printf(KYEL "Lost alignment...\n" RESET);
+//					for(int i = 0; i < RCV_THRESHOLD/4; i++)
+//						printf("%f$", *(uint32_t *)(rcvdFrame + i*4));
+                    //tracing the header
+                    headerIndex = 0xFF;
+                    for(int i = 0; i < RCV_THRESHOLD - 4; i++)
+                        if(*(uint32_t *)(rcvdFrame + i) == HEADER_NAN)
+                            headerIndex = i;
+                    if(headerIndex == 0xFF)
+                    {
+                        printf(KRED "No Header detected T_T...\n" RESET);
+                    }
+                    else
+                    {
+                        printf(KYEL "Header detected, reconstructing frame...\n");
+                        for(int i = 0; i < headerIndex; i++)
+                            frame32[i] = backupFrame[i + headerIndex];
+                        for(int i = headerIndex; i < RCV_THRESHOLD; i++)
+                            frame32[i] = rcvdFrame[i - headerIndex];
+
+                        printf("#");
+                        printf("%#8x$", *(uint32_t *)(frame32));
+                        for(int i = 1; i < RCV_THRESHOLD/4; i++)
+                            printf("%f$", *(float *)(frame32 + i*4));
+                        for(int i = 0; i < RCV_THRESHOLD; i++)
+                            backupFrame[i] = rcvdFrame[i];
+                    }
+                    //A magical flush that appears to solve the misalignment...
+                    tcflush(fd, TCIOFLUSH);
+                }
+                else // header = HEADER_NAN
+                {
+                    printf(KBLU "Recieved well-aligned message... ^,^!\n");
+                    if(misAlgnFlag == DOWN)
+                        misAlgnFlag = UP;
+                    printf("#");
+                    printf("%#8x$", *(uint32_t *)(rcvdFrame));
+                    for(int i = 1; i < RCV_THRESHOLD/4; i++)
+                        printf("%f$", *(float *)(rcvdFrame + i*4));
+                    printf("\n"RESET);
+                    viconUpdateFlag = UP;
+                }
+            }
+        }
+        //If no vicon data has arrived then notify and go on
+        else
+        {
+            printf(KWHT "No message has arrived...\n\n\n" RESET);
+        }
+
+        if(viconUpdateFlag == UP)
+        {
+            viconX = *(float *)(rcvdFrame + 4);
+            viconY = *(float *)(rcvdFrame + 8);
+            viconZ = *(float *)(rcvdFrame + 12);
+            viconXd = *(float *)(rcvdFrame + 16);
+            viconYd = *(float *)(rcvdFrame + 20);
+            viconZd = *(float *)(rcvdFrame + 24);
+        }
+
+        //f measurement succeeds proceed to the ekf, otherwise move to the next anchor
         if ((rangeInfo.rangeMeasurementType & RCM_RANGE_TYPE_PRECISION) && rangeInfo.precisionRangeMm < 12000)
         {
             //calculate deltat
@@ -451,7 +651,7 @@ int main(int argc, char *argv[])
             dists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
 
             //step the model
-            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, 0.0, 3.0);
+            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, 0.0, 5.0);
 
             //Print and log state values
             if (lastRangingSuccesful)
@@ -512,6 +712,7 @@ int main(int argc, char *argv[])
 
             fout << "i = [i " << nodeId << "]; d = [d " << dists[nodeId - 1] << "]; x = [x " << x_est[0] << "]; y = [y " << x_est[1] << "]; z = [z " << x_est[2] << "]; ";
             fout << "p1 = [p1 " << ekf_Obj.ekf_mf_B.P_pre[0] << "]; p2 = [p2 "<<ekf_Obj.ekf_mf_B.P_pre[7]<<"]; p3 = [p3 "<<ekf_Obj.ekf_mf_B.P_pre[14]<<"]; ";
+            fout << "X=[X " << viconX << "]; Y=[Y " << viconY << "]; Z=[Z " << viconZ << "]; ";
             fout << "dt = [dt "<<deltat<<"]; loss = [loss "<<faultyRangingCount / (double)loopCount * 100<<"]; " << endl;
 
             lastRangingSuccesful = true;

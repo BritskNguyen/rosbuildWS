@@ -3,7 +3,7 @@
 
  <!-- viconXbee node -->
   <node respawn="true" pkg="viconXbee"
-        type="viconXbee_node" name="viconXbee_node0" >
+        type="viconXbee_node" name="viconXbee_node0" output="screen">
     <param name="viconSerialPort" type="string" value="/dev/ttyUSB0" />
 	<param name="viconNodeRate" type="int" value="20"/>
 <param name="viconhandshakingModeEnabled" type="bool" value="true"/>

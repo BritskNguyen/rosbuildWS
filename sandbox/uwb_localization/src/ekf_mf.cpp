@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'ekf_mf'.
 //
-// Model version                  : 1.322
+// Model version                  : 1.325
 // Simulink Coder version         : 8.6 (R2014a) 27-Dec-2013
-// C/C++ source code generated on : Wed Sep 23 22:34:50 2015
+// C/C++ source code generated on : Fri Sep 25 23:02:52 2015
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex
@@ -17,6 +17,8 @@
 //
 
 #include "ekf_mf.h"
+
+extern real_T rt_roundd(real_T u);
 
 //===========*
 //  Constants *
@@ -147,6 +149,24 @@ void ekf_mfClass::ekf_mf_eml_sort(const real_T x_data[], const int32_T x_sizes[2
   }
 }
 
+real_T rt_roundd(real_T u)
+{
+  real_T y;
+  if (fabs(u) < 4.503599627370496E+15) {
+    if (u >= 0.5) {
+      y = floor(u + 0.5);
+    } else if (u > -0.5) {
+      y = 0.0;
+    } else {
+      y = ceil(u - 0.5);
+    }
+  } else {
+    y = u;
+  }
+
+  return y;
+}
+
 // Model step function
 void ekf_mfClass::step(const real_T arg_dists[4], real_T arg_deltat, real_T
   arg_imu, uint8_T arg_nodeId, real_T arg_x_est[6], real_T arg_calibEnable,
@@ -163,6 +183,7 @@ void ekf_mfClass::step(const real_T arg_dists[4], real_T arg_deltat, real_T
   int32_T i_0;
   int32_T i_1;
   real_T dis_pre_vect_idx_2;
+  uint8_T tmp;
   UNUSED_PARAMETER(arg_imu);
 
   // MATLAB Function: '<S1>/EKF prediction' incorporates:
@@ -393,8 +414,19 @@ void ekf_mfClass::step(const real_T arg_dists[4], real_T arg_deltat, real_T
   ekf_mf_eml_sort(ekf_mf_B.tmp_data, ekf_mf_B.tmp_sizes,
                   ekf_mf_B.orderedBuff_data, ekf_mf_B.orderedBuff_sizes);
 
-  // '<S4>:1:21' distsCalibed(nodeId) = orderedBuff(3);
-  ekf_mf_B.distsCalibed[arg_nodeId - 1] = ekf_mf_B.orderedBuff_data[2];
+  // '<S4>:1:21' distsCalibed(nodeId) = orderedBuff(uint8(medBuffSize/2));
+  ekf_mf_B.dis_pre_vect_idx_0 = rt_roundd(arg_medBuffSize / 2.0);
+  if (ekf_mf_B.dis_pre_vect_idx_0 < 256.0) {
+    if (ekf_mf_B.dis_pre_vect_idx_0 >= 0.0) {
+      tmp = (uint8_T)ekf_mf_B.dis_pre_vect_idx_0;
+    } else {
+      tmp = 0U;
+    }
+  } else {
+    tmp = MAX_uint8_T;
+  }
+
+  ekf_mf_B.distsCalibed[arg_nodeId - 1] = ekf_mf_B.orderedBuff_data[tmp - 1];
 
   // End of MATLAB Function: '<S1>/Median Filter'
 
@@ -468,7 +500,7 @@ void ekf_mfClass::step(const real_T arg_dists[4], real_T arg_deltat, real_T
   }
 
   // Attempt to make the covariance matrix symetric in hope that it would stay
-  // positive definite.
+  // positive definite
   // P_upd = (P_upd + P_upd')*0.5;
   for (i = 0; i < 6; i++) {
     // Outport: '<Root>/x_est'
@@ -591,9 +623,11 @@ ekf_mfClass::ekf_mfClass()
     //  Expression: [dists0 dists0 dists0 dists0 dists0 dists0 dists0 dists0 dists0]
 
     //  Referenced by: '<S1>/initDists'
-    { 1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0,
-      4.0, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0, 3.0, 4.0, 1.0, 2.0,
-      3.0, 4.0, 1.0, 2.0, 3.0, 4.0 }
+    { 4.25779, 4.51474, 4.31816, 4.33893, 4.25779, 4.51474, 4.31816, 4.33893,
+      4.25779, 4.51474, 4.31816, 4.33893, 4.25779, 4.51474, 4.31816, 4.33893,
+      4.25779, 4.51474, 4.31816, 4.33893, 4.25779, 4.51474, 4.31816, 4.33893,
+      4.25779, 4.51474, 4.31816, 4.33893, 4.25779, 4.51474, 4.31816, 4.33893,
+      4.25779, 4.51474, 4.31816, 4.33893 }
   };                                   // Modifiable parameters
 
   // Initialize tunable parameters
