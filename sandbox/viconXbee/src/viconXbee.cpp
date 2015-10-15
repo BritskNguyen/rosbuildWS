@@ -118,8 +118,8 @@ int main(int argc, char **argv)
 
 	//Open the serial port as a file descriptor for low level configuration
 	//read/write, not controlling terminal for process,
-    //fd = open(serialPortName.data(), O_RDWR | O_NOCTTY | O_NDELAY);	//program won't be blocked during read
-    fd = open(serialPortName.data(), O_RDONLY | O_NOCTTY);			//program will be blocked in during read
+    fd = open(serialPortName.data(), O_RDWR | O_NOCTTY | O_NDELAY);	//program won't be blocked during read
+    //fd = open(serialPortName.data(), O_RDWR | O_NOCTTY);			//program will be blocked in during read
 	if ( fd < 0 )
 	{
 		printf(KRED "serialInit: Could not open serial device %s\n" RESET, serialPortName.data());
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 	//allow the process to receive SIGIO
 	fcntl(fd, F_SETOWN, getpid());
 	//Make the file descriptor asynchronous
-	fcntl(fd, F_SETFL, O_ASYNC|O_NONBLOCK);
+    fcntl(fd, F_SETFL, O_ASYNC | O_NONBLOCK);
 
 	//Set up serial settings
 	memset(&newtio, 0,sizeof(newtio));

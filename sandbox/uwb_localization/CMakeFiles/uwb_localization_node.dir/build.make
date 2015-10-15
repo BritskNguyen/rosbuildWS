@@ -49,50 +49,50 @@ include CMakeFiles/uwb_localization_node.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/uwb_localization_node.dir/flags.make
 
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: CMakeFiles/uwb_localization_node.dir/flags.make
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: src/rcmSampleApp.cpp
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: manifest.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/cpp_common/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/rostime/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/roscpp_traits/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/roscpp_serialization/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/genmsg/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/genpy/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/message_runtime/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/catkin/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/gencpp/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/genlisp/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/message_generation/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/rosbuild/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/rosconsole/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/std_msgs/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/rosgraph_msgs/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/xmlrpcpp/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/roscpp/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/rosgraph/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/rospack/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/roslib/package.xml
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o: /opt/ros/indigo/share/rospy/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: CMakeFiles/uwb_localization_node.dir/flags.make
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: src/rcmEkfLocalization.cpp
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: manifest.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/cpp_common/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/rostime/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/roscpp_traits/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/roscpp_serialization/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/genmsg/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/genpy/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/message_runtime/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/catkin/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/gencpp/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/genlisp/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/message_generation/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/rosbuild/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/rosconsole/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/std_msgs/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/rosgraph_msgs/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/xmlrpcpp/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/roscpp/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/rosgraph/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/rospack/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/roslib/package.xml
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o: /opt/ros/indigo/share/rospy/package.xml
 	$(CMAKE_COMMAND) -E cmake_progress_report /home/britsk/rosbuildWS/sandbox/uwb_localization/CMakeFiles $(CMAKE_PROGRESS_1)
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o -c /home/britsk/rosbuildWS/sandbox/uwb_localization/src/rcmSampleApp.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o -c /home/britsk/rosbuildWS/sandbox/uwb_localization/src/rcmEkfLocalization.cpp
 
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/britsk/rosbuildWS/sandbox/uwb_localization/src/rcmSampleApp.cpp > CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.i
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.i"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/britsk/rosbuildWS/sandbox/uwb_localization/src/rcmEkfLocalization.cpp > CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.i
 
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/britsk/rosbuildWS/sandbox/uwb_localization/src/rcmSampleApp.cpp -o CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.s
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.s"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/britsk/rosbuildWS/sandbox/uwb_localization/src/rcmEkfLocalization.cpp -o CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.s
 
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o.requires:
-.PHONY : CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o.requires
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o.requires:
+.PHONY : CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o.requires
 
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o.provides: CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o.requires
-	$(MAKE) -f CMakeFiles/uwb_localization_node.dir/build.make CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o.provides.build
-.PHONY : CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o.provides
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o.provides: CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o.requires
+	$(MAKE) -f CMakeFiles/uwb_localization_node.dir/build.make CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o.provides.build
+.PHONY : CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o.provides
 
-CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o.provides.build: CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o
+CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o.provides.build: CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o
 
 CMakeFiles/uwb_localization_node.dir/src/rcm.c.o: CMakeFiles/uwb_localization_node.dir/flags.make
 CMakeFiles/uwb_localization_node.dir/src/rcm.c.o: src/rcm.c
@@ -184,18 +184,112 @@ CMakeFiles/uwb_localization_node.dir/src/rcmIf.c.o.provides: CMakeFiles/uwb_loca
 
 CMakeFiles/uwb_localization_node.dir/src/rcmIf.c.o.provides.build: CMakeFiles/uwb_localization_node.dir/src/rcmIf.c.o
 
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: CMakeFiles/uwb_localization_node.dir/flags.make
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: src/ekf_mf.cpp
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: manifest.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/cpp_common/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/rostime/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/roscpp_traits/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/roscpp_serialization/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/genmsg/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/genpy/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/message_runtime/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/catkin/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/gencpp/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/genlisp/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/message_generation/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/rosbuild/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/rosconsole/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/std_msgs/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/rosgraph_msgs/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/xmlrpcpp/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/roscpp/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/rosgraph/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/rospack/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/roslib/package.xml
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o: /opt/ros/indigo/share/rospy/package.xml
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/britsk/rosbuildWS/sandbox/uwb_localization/CMakeFiles $(CMAKE_PROGRESS_4)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o -c /home/britsk/rosbuildWS/sandbox/uwb_localization/src/ekf_mf.cpp
+
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.i"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/britsk/rosbuildWS/sandbox/uwb_localization/src/ekf_mf.cpp > CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.i
+
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.s"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/britsk/rosbuildWS/sandbox/uwb_localization/src/ekf_mf.cpp -o CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.s
+
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o.requires:
+.PHONY : CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o.requires
+
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o.provides: CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o.requires
+	$(MAKE) -f CMakeFiles/uwb_localization_node.dir/build.make CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o.provides.build
+.PHONY : CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o.provides
+
+CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o.provides.build: CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o
+
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: CMakeFiles/uwb_localization_node.dir/flags.make
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: src/trilat.cpp
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: manifest.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/cpp_common/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/rostime/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/roscpp_traits/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/roscpp_serialization/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/genmsg/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/genpy/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/message_runtime/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/catkin/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/gencpp/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/genlisp/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/message_generation/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/rosbuild/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/rosconsole/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/std_msgs/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/rosgraph_msgs/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/xmlrpcpp/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/roscpp/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/rosgraph/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/rospack/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/roslib/package.xml
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o: /opt/ros/indigo/share/rospy/package.xml
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/britsk/rosbuildWS/sandbox/uwb_localization/CMakeFiles $(CMAKE_PROGRESS_5)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building CXX object CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_FLAGS) -o CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o -c /home/britsk/rosbuildWS/sandbox/uwb_localization/src/trilat.cpp
+
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.i"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -E /home/britsk/rosbuildWS/sandbox/uwb_localization/src/trilat.cpp > CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.i
+
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.s"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_FLAGS) -S /home/britsk/rosbuildWS/sandbox/uwb_localization/src/trilat.cpp -o CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.s
+
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o.requires:
+.PHONY : CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o.requires
+
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o.provides: CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o.requires
+	$(MAKE) -f CMakeFiles/uwb_localization_node.dir/build.make CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o.provides.build
+.PHONY : CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o.provides
+
+CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o.provides.build: CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o
+
 # Object files for target uwb_localization_node
 uwb_localization_node_OBJECTS = \
-"CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o" \
+"CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o" \
 "CMakeFiles/uwb_localization_node.dir/src/rcm.c.o" \
-"CMakeFiles/uwb_localization_node.dir/src/rcmIf.c.o"
+"CMakeFiles/uwb_localization_node.dir/src/rcmIf.c.o" \
+"CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o" \
+"CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o"
 
 # External object files for target uwb_localization_node
 uwb_localization_node_EXTERNAL_OBJECTS =
 
-bin/uwb_localization_node: CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o
+bin/uwb_localization_node: CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o
 bin/uwb_localization_node: CMakeFiles/uwb_localization_node.dir/src/rcm.c.o
 bin/uwb_localization_node: CMakeFiles/uwb_localization_node.dir/src/rcmIf.c.o
+bin/uwb_localization_node: CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o
+bin/uwb_localization_node: CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o
 bin/uwb_localization_node: CMakeFiles/uwb_localization_node.dir/build.make
 bin/uwb_localization_node: CMakeFiles/uwb_localization_node.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --red --bold "Linking CXX executable bin/uwb_localization_node"
@@ -205,9 +299,11 @@ bin/uwb_localization_node: CMakeFiles/uwb_localization_node.dir/link.txt
 CMakeFiles/uwb_localization_node.dir/build: bin/uwb_localization_node
 .PHONY : CMakeFiles/uwb_localization_node.dir/build
 
-CMakeFiles/uwb_localization_node.dir/requires: CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o.requires
+CMakeFiles/uwb_localization_node.dir/requires: CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o.requires
 CMakeFiles/uwb_localization_node.dir/requires: CMakeFiles/uwb_localization_node.dir/src/rcm.c.o.requires
 CMakeFiles/uwb_localization_node.dir/requires: CMakeFiles/uwb_localization_node.dir/src/rcmIf.c.o.requires
+CMakeFiles/uwb_localization_node.dir/requires: CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o.requires
+CMakeFiles/uwb_localization_node.dir/requires: CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o.requires
 .PHONY : CMakeFiles/uwb_localization_node.dir/requires
 
 CMakeFiles/uwb_localization_node.dir/clean:

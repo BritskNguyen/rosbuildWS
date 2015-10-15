@@ -1,4 +1,7 @@
 FILE(REMOVE_RECURSE
+  "msg_gen"
+  "msg_gen"
+  "src/uwb_localization/msg"
   "CMakeFiles/clean_test_results"
 )
 

@@ -22,4 +22,4 @@
 /home/britsk/rosbuildWS/sandbox/viconXbee/build/CMakeFiles/test-results.dir
 /home/britsk/rosbuildWS/sandbox/viconXbee/build/CMakeFiles/test-results-run.dir
 /home/britsk/rosbuildWS/sandbox/viconXbee/build/CMakeFiles/tests.dir
-/home/britsk/rosbuildWS/sandbox/viconXbee/build/CMakeFiles/viconXbee.dir
+/home/britsk/rosbuildWS/sandbox/viconXbee/build/CMakeFiles/viconXbee_node.dir

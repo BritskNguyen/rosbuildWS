@@ -1,7 +1,12 @@
 FILE(REMOVE_RECURSE
-  "CMakeFiles/uwb_localization_node.dir/src/rcmSampleApp.cpp.o"
+  "msg_gen"
+  "msg_gen"
+  "src/uwb_localization/msg"
+  "CMakeFiles/uwb_localization_node.dir/src/rcmEkfLocalization.cpp.o"
   "CMakeFiles/uwb_localization_node.dir/src/rcm.c.o"
   "CMakeFiles/uwb_localization_node.dir/src/rcmIf.c.o"
+  "CMakeFiles/uwb_localization_node.dir/src/ekf_mf.cpp.o"
+  "CMakeFiles/uwb_localization_node.dir/src/trilat.cpp.o"
   "bin/uwb_localization_node.pdb"
   "bin/uwb_localization_node"
 )

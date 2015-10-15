@@ -426,17 +426,17 @@ tests/fast:
 .PHONY : tests/fast
 
 #=============================================================================
-# Target rules for targets named viconXbee
+# Target rules for targets named viconXbee_node
 
 # Build rule for target.
-viconXbee: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 viconXbee
-.PHONY : viconXbee
+viconXbee_node: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 viconXbee_node
+.PHONY : viconXbee_node
 
 # fast build rule for target.
-viconXbee/fast:
-	$(MAKE) -f CMakeFiles/viconXbee.dir/build.make CMakeFiles/viconXbee.dir/build
-.PHONY : viconXbee/fast
+viconXbee_node/fast:
+	$(MAKE) -f CMakeFiles/viconXbee_node.dir/build.make CMakeFiles/viconXbee_node.dir/build
+.PHONY : viconXbee_node/fast
 
 #=============================================================================
 # Target rules for targets named gtest
@@ -469,7 +469,7 @@ src/viconXbee.o: src/viconXbee.cpp.o
 
 # target to build an object file
 src/viconXbee.cpp.o:
-	$(MAKE) -f CMakeFiles/viconXbee.dir/build.make CMakeFiles/viconXbee.dir/src/viconXbee.cpp.o
+	$(MAKE) -f CMakeFiles/viconXbee_node.dir/build.make CMakeFiles/viconXbee_node.dir/src/viconXbee.cpp.o
 .PHONY : src/viconXbee.cpp.o
 
 src/viconXbee.i: src/viconXbee.cpp.i
@@ -477,7 +477,7 @@ src/viconXbee.i: src/viconXbee.cpp.i
 
 # target to preprocess a source file
 src/viconXbee.cpp.i:
-	$(MAKE) -f CMakeFiles/viconXbee.dir/build.make CMakeFiles/viconXbee.dir/src/viconXbee.cpp.i
+	$(MAKE) -f CMakeFiles/viconXbee_node.dir/build.make CMakeFiles/viconXbee_node.dir/src/viconXbee.cpp.i
 .PHONY : src/viconXbee.cpp.i
 
 src/viconXbee.s: src/viconXbee.cpp.s
@@ -485,7 +485,7 @@ src/viconXbee.s: src/viconXbee.cpp.s
 
 # target to generate assembly for a file
 src/viconXbee.cpp.s:
-	$(MAKE) -f CMakeFiles/viconXbee.dir/build.make CMakeFiles/viconXbee.dir/src/viconXbee.cpp.s
+	$(MAKE) -f CMakeFiles/viconXbee_node.dir/build.make CMakeFiles/viconXbee_node.dir/src/viconXbee.cpp.s
 .PHONY : src/viconXbee.cpp.s
 
 # Help Target
@@ -522,7 +522,7 @@ help:
 	@echo "... test-results"
 	@echo "... test-results-run"
 	@echo "... tests"
-	@echo "... viconXbee"
+	@echo "... viconXbee_node"
 	@echo "... gtest"
 	@echo "... gtest_main"
 	@echo "... src/viconXbee.o"

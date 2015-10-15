@@ -139,9 +139,9 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>[Targets]/[exe] uwb_localization_node/Source Files/rcmSampleApp.cpp</name>
+			<name>[Targets]/[exe] uwb_localization_node/Source Files/rcmEkfLocalization.cpp</name>
 			<type>1</type>
-			<location>/home/britsk/rosbuildWS/sandbox/uwb_localization/src/rcmSampleApp.cpp</location>
+			<location>/home/britsk/rosbuildWS/sandbox/uwb_localization/src/rcmEkfLocalization.cpp</location>
 		</link>
 		<link>
 			<name>[Targets]/[exe] uwb_localization_node/Source Files/rcm.c</name>
@@ -152,6 +152,16 @@
 			<name>[Targets]/[exe] uwb_localization_node/Source Files/rcmIf.c</name>
 			<type>1</type>
 			<location>/home/britsk/rosbuildWS/sandbox/uwb_localization/src/rcmIf.c</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] uwb_localization_node/Source Files/ekf_mf.cpp</name>
+			<type>1</type>
+			<location>/home/britsk/rosbuildWS/sandbox/uwb_localization/src/ekf_mf.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] uwb_localization_node/Source Files/trilat.cpp</name>
+			<type>1</type>
+			<location>/home/britsk/rosbuildWS/sandbox/uwb_localization/src/trilat.cpp</location>
 		</link>
 		<link>
 			<name>[Targets]/[exe] uwb_localization_node/Header Files</name>

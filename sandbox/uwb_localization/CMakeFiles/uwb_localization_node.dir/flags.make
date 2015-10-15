@@ -3,11 +3,11 @@
 
 # compile C with /usr/bin/cc
 # compile CXX with /usr/bin/c++
-C_FLAGS = -O2 -g -DNDEBUG -I/home/britsk/rosbuildWS/sandbox/uwb_localization/include -I/opt/ros/indigo/include    -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread
+C_FLAGS = -O2 -g -DNDEBUG -I/home/britsk/rosbuildWS/sandbox/uwb_localization/include -I/opt/ros/indigo/include -I/home/britsk/rosbuildWS/sandbox/uwb_localization/msg_gen/cpp/include    -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread
 
 C_DEFINES = -DROS_PACKAGE_NAME=\"uwb_localization\"
 
-CXX_FLAGS = -O2 -g -DNDEBUG -I/home/britsk/rosbuildWS/sandbox/uwb_localization/include -I/opt/ros/indigo/include    -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread
+CXX_FLAGS = -O2 -g -DNDEBUG -I/home/britsk/rosbuildWS/sandbox/uwb_localization/include -I/opt/ros/indigo/include -I/home/britsk/rosbuildWS/sandbox/uwb_localization/msg_gen/cpp/include    -W -Wall -Wno-unused-parameter -fno-strict-aliasing -pthread
 
 CXX_DEFINES = -DROS_PACKAGE_NAME=\"uwb_localization\"
 
