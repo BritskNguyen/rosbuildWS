@@ -201,7 +201,10 @@ int main(int argc, char *argv[])
 
 //-------------------------------------Vicon Serial Parameter Collection-------------------------------------------
     string viconSerialPortName = string(DFLT_PORT);
+
     bool handshakingMode = true;
+    bool asynMode = false;
+
     if(uwbViconNodeHandle.getParam("viconSerialPort", viconSerialPortName))
         printf(KBLU"Retrieved value %s for param 'viconSerialPort'!\n"RESET, viconSerialPortName.data());
     else
@@ -210,15 +213,25 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    if(uwbViconNodeHandle.getParam("viconhandshakingModeEnabled", handshakingMode))
+    if(uwbViconNodeHandle.getParam("viconAsyncMode", asynMode))
     {
-        if(handshakingMode)
-            printf(KBLU"Retrieved value 'true' for param 'viconhandshakingModeEnabled'\n"RESET);
+        if(asynMode)
+            printf(KBLU"Retrieved value 'true' for param 'viconAsyncMode.'\n"RESET);
         else
-            printf(KBLU"Retrieved value 'false' for param 'viconhandshakingModeEnabled'\n"RESET);
+            printf(KBLU"Retrieved value 'false' for param 'viconAsyncMode.'\n"RESET);
     }
     else
-        printf(KBLU"Couldn't retrieve param 'viconhandshakingModeEnabled'. Using default mode with handshake\n"RESET);
+        printf(KYEL"Couldn't retrieve param 'viconAsyncMode'. Using default synchrous mode.\n"RESET);
+
+    if(uwbViconNodeHandle.getParam("viconHandshakingModeEnabled", handshakingMode))
+    {
+        if(handshakingMode)
+            printf(KBLU"Retrieved value 'true' for param 'viconHandshakingModeEnabled.'\n"RESET);
+        else
+            printf(KBLU"Retrieved value 'false' for param 'viconHandshakingModeEnabled.'\n"RESET);
+    }
+    else
+        printf(KYEL"Couldn't retrieve param 'viconHandshakingModeEnabled'. Using default mode with handshake.\n"RESET);
 
 //-------------------Initialize Vicon Serial Connection---------------------------------------------------
     int fd = -1;
@@ -236,17 +249,21 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-//    //Install the signal handler before making the device asynchronous
-//    saio.sa_handler = signal_handler_IO;
-//    sigemptyset(&saio.sa_mask);
-//    saio.sa_flags = 0;
-//    saio.sa_restorer = NULL;
-//    sigaction(SIGIO,&saio,NULL);
+    if(asynMode)
+    {
+        printf("Initializing asynchronous mode for Vicon Xbee\n");
+        //Install the signal handler before making the device asynchronous
+        saio.sa_handler = signal_handler_IO;
+        sigemptyset(&saio.sa_mask);
+        saio.sa_flags = 0;
+        saio.sa_restorer = NULL;
+        sigaction(SIGIO,&saio,NULL);
 
-//    //allow the process to receive SIGIO
-//    fcntl(fd, F_SETOWN, getpid());
-//    //Make the file descriptor asynchronous
-//    fcntl(fd, F_SETFL, O_ASYNC | O_NONBLOCK);
+        //allow the process to receive SIGIO
+        fcntl(fd, F_SETOWN, getpid());
+        //Make the file descriptor asynchronous
+        fcntl(fd, F_SETFL, O_ASYNC | O_NONBLOCK);
+    }
 
     //Set up serial settings
     memset(&newtio, 0,sizeof(newtio));
@@ -551,250 +568,254 @@ int main(int argc, char *argv[])
             break;
         }
 
-//        //tcflush(fd, TCIOFLUSH);
-//        //Send request to vicon
-//        if(handshakingMode)
-//            write(fd,"d", 1);
+        if(handshakingMode)
+            write(fd,"d", 1);
 
-//        //rate.sleep();
-//        ros::Duration tempoSleep(0.020);
-//        tempoSleep.sleep();
+        //Check if vicon data has arrived
+        if(msgFlag == UP || !asynMode)
+        {
+//            ros::Duration tempoSleep(0.020);
+//            tempoSleep.sleep();
+            msgFlag = DOWN;
+            rcvdBytesCount = read(fd,rcvdFrame, RCV_THRESHOLD);
+            //First, check if read is successful
+            if(rcvdBytesCount == -1)
+            {
+                printf(KRED"Buffer not ready... :( \n" RESET);
+                ros::Time recoveryTime = ros::Time::now();
+                uint8_T residue = RCV_THRESHOLD;
+                while(true)
+                {
+                    rcvdBytesCount = read(fd,rcvdFrame, residue);
 
-//        //Check if vicon data has arrived
-//        if(msgFlag == UP)
-//        {
-////            ros::Duration tempoSleep(0.020);
-////            tempoSleep.sleep();
-//            msgFlag = DOWN;
-//            rcvdBytesCount = read(fd,rcvdFrame, RCV_THRESHOLD);
-//            //First, check if read is successful
-//            if(rcvdBytesCount == -1)
-//            {
-//                printf(KRED"Buffer not ready... :( \n" RESET);
-//                ros::Time recoveryTime = ros::Time::now();
-//                uint8_T residue = RCV_THRESHOLD;
-//                while(true)
-//                {
-//                    rcvdBytesCount = read(fd,rcvdFrame, residue);
-
-///*                    if(rcvdBytesCount == RCV_THRESHOLD)
-//                    {
-//                        printf(KGRN"Frame comes after waiting\n" RESET);
+/*                    if(rcvdBytesCount == RCV_THRESHOLD)
+                    {
+                        printf(KGRN"Frame comes after waiting\n" RESET);
+                        for(int i = 0; i < rcvdBytesCount; i++)
+                        {
+                            backupFrame[i] = rcvdFrame[i];
+                            printf(KGRN"%2x ", rcvdFrame[i]);
+                        }
+                        printf("\n"RESET);
+                    }
+                    else*/ if(rcvdBytesCount != -1)
+                    {
+                        printf(KYEL"Fragment of %d byte(s) arrives\n"RESET, rcvdBytesCount);
 //                        for(int i = 0; i < rcvdBytesCount; i++)
 //                        {
-//                            backupFrame[i] = rcvdFrame[i];
+//                            backupFrame[RCV_THRESHOLD - residue + i] = rcvdFrame[i];
 //                            printf(KGRN"%2x ", rcvdFrame[i]);
 //                        }
 //                        printf("\n"RESET);
-//                    }
-//                    else*/ if(rcvdBytesCount != -1)
-//                    {
-//                        printf(KYEL"Fragment of %d byte(s) arrives\n"RESET, rcvdBytesCount);
-////                        for(int i = 0; i < rcvdBytesCount; i++)
-////                        {
-////                            backupFrame[RCV_THRESHOLD - residue + i] = rcvdFrame[i];
-////                            printf(KGRN"%2x ", rcvdFrame[i]);
-////                        }
-////                        printf("\n"RESET);
-//                        residue = residue - rcvdBytesCount;
-//                        if(residue == 0)
-//                        {
-//                            viconUpdateFlag = UP;
-////                            printf(KGRN"Concantenated frame: "RESET);
-////                            for(int i = 0; i < RCV_THRESHOLD; i++)
-////                                printf(KYEL"%2x ", backupFrame[i]);
-////                            printf("\n"RESET);
-//                            break;
-//                        }
-//                        //tcflush(fd, TCIOFLUSH);
-//                        //break;
-//                    }
-//                    else if((ros::Time::now() - recoveryTime).toSec() > 0.01)
-//                    {
-//                        printf(KRED"Time out waiting for this frame!\n"RESET);
-//                        tcflush(fd, TCIOFLUSH);
-//                        break;
-//                    }
-//                }
-//            }
-//            //Second check if read returns full frame
-//            else if(rcvdBytesCount < RCV_THRESHOLD)
-//            {
-//                //printf(KRED "%d\n" RESET, rcvdBytesCount);
-//                printf(KRED "Only %d/%d bytes! Attempting to fetch the rest.. >,< \n" RESET, rcvdBytesCount, RCV_THRESHOLD);
-//                for(int i = 0; i < rcvdBytesCount; i++)
-//                //{
-//                    backupFrame[i] = rcvdFrame[i];
-//                    //printf(KYEL"%2x ", rcvdFrame[i]);
-//                //}
-//                //printf("\n"RESET);
-////                ros::Duration tempoSleep(0.02);
-////                tempoSleep.sleep();
-//                ros::Time recoveryTime = ros::Time::now();
-//                uint8_T residue = RCV_THRESHOLD - rcvdBytesCount;
-//                uint8_T miniBuff = 0, retrievalCount = 0;
-//                for (int i = 0; i < residue; i++)
-//                {
-//                    rcvdBytesCount = read(fd,&miniBuff, 1);
-//                    if(rcvdBytesCount == -1)
-//                    {
-//                        if((ros::Time::now() - recoveryTime).toSec() > 0.01)
-//                            i = residue;
-//                        else
-//                            i--;
-//                    }
-//                    else
-//                    {
-//                        retrievalCount++;
-//                        backupFrame[RCV_THRESHOLD - residue + i] = miniBuff;
-//                        //printf(KYEL"%2x ", miniBuff);
-//                    }
-//                }
-//                //printf("\n"RESET);
-//                if(retrievalCount == residue)
-//                {
-//                    printf(KGRN"Full retrival \n"RESET);
-////                    for(int i = 0; i < RCV_THRESHOLD; i++)
-////                        printf(KGRN"%2x ", backupFrame[i]);
-////                    printf("\n"RESET);
-//                    viconUpdateFlag = UP;
-//                }
-//                else
-//                {
-//                    printf(KRED"Frame segment lost forever!\n\n"RESET);
-//                    tcflush(fd, TCIOFLUSH);
-//                }
-
-//            }
-//            //Third, check if frame is valid
-//            else
-//            {
-//                //Tracing the header
-//                if(*(uint32_t *)(rcvdFrame) != (HEADER_NAN))
-//                {
-//                    printf(KYEL"Jumbled frame: "RESET);
+                        residue = residue - rcvdBytesCount;
+                        if(residue == 0)
+                        {
+                            viconUpdateFlag = UP;
+//                            printf(KGRN"Concantenated frame: "RESET);
+//                            for(int i = 0; i < RCV_THRESHOLD; i++)
+//                                printf(KYEL"%2x ", backupFrame[i]);
+//                            printf("\n"RESET);
+                            break;
+                        }
+                        //(fd, TCIOFLUSH);
+                        //break;
+                    }
+                    else if((ros::Time::now() - recoveryTime).toSec() > 0.01)
+                    {
+                        printf(KRED"Time out waiting for this frame!\n"RESET);
+                        tcflush(fd, TCIOFLUSH);
+                        break;
+                    }
+                }
+            }
+            //Second check if read returns full frame
+            else if(rcvdBytesCount < RCV_THRESHOLD)
+            {
+                //printf(KRED "%d\n" RESET, rcvdBytesCount);
+                printf(KRED "Only %d/%d bytes! Attempting to fetch the rest.. >,< \n" RESET, rcvdBytesCount, RCV_THRESHOLD);
+                for(int i = 0; i < rcvdBytesCount; i++)
+                //{
+                    backupFrame[i] = rcvdFrame[i];
+                    //printf(KYEL"%2x ", rcvdFrame[i]);
+                //}
+                //printf("\n"RESET);
+//                ros::Duration tempoSleep(0.02);
+//                tempoSleep.sleep();
+                ros::Time recoveryTime = ros::Time::now();
+                uint8_T residue = RCV_THRESHOLD - rcvdBytesCount;
+                uint8_T miniBuff = 0, retrievalCount = 0;
+                for (int i = 0; i < residue; i++)
+                {
+                    rcvdBytesCount = read(fd,&miniBuff, 1);
+                    if(rcvdBytesCount == -1)
+                    {
+                        if((ros::Time::now() - recoveryTime).toSec() > 0.01)
+                            i = residue;
+                        else
+                            i--;
+                    }
+                    else
+                    {
+                        retrievalCount++;
+                        backupFrame[RCV_THRESHOLD - residue + i] = miniBuff;
+                        //printf(KYEL"%2x ", miniBuff);
+                    }
+                }
+                //printf("\n"RESET);
+                if(retrievalCount == residue)
+                {
+                    printf(KGRN"Full retrival \n"RESET);
 //                    for(int i = 0; i < RCV_THRESHOLD; i++)
-//                    {
-//                        backupFrame[i] = rcvdFrame[i];
-//                        printf(KYEL"%2x ", rcvdFrame[i]);
-//                    }
+//                        printf(KGRN"%2x ", backupFrame[i]);
 //                    printf("\n"RESET);
-//                    viconUpdateFlag = UP;
-//                }
-//                else // header = HEADER_NAN
-//                {
-//                    printf(KBLU "Recieved well-aligned message... ^,^!\n");
-//                    for(int i = 0; i< RCV_THRESHOLD; i++)
-//                        backupFrame[i] = rcvdFrame[i];
-//                    viconUpdateFlag = UP;
-//                }
-//            }
-//        }
-//        //If no vicon data has arrived then notify and go on
-//        else
-//        {
-//            printf(KWHT "No message has arrived...\n\n\n" RESET);
-//        }
+                    viconUpdateFlag = UP;
+                }
+                else
+                {
+                    printf(KRED"Frame segment lost forever!\n\n"RESET);
+                    tcflush(fd, TCIOFLUSH);
+                }
 
-////        backupFrame[20] = 0xAA;
-////        backupFrame[21] = 0xAA;
-////        backupFrame[22] = 0x7F;
-////        backupFrame[23] = 1;
-////        backupFrame[24] = 2;
-////        backupFrame[25] = 3;
-////        backupFrame[26] = 4;
-////        backupFrame[27] = 5;
-////        backupFrame[28] = 6;
-////        backupFrame[29] = 7;
-////        backupFrame[30] = 8;
-////        backupFrame[31] = 9;
-////        backupFrame[32] = 10;
-////        backupFrame[33] = 11;
-////        backupFrame[34] = 12;
-////        backupFrame[35] = 13;
-////        backupFrame[36] = 14;
-////        backupFrame[37] = 15;
-////        backupFrame[38] = 16;
-////        backupFrame[39] = 17;
-////        backupFrame[0] = 18;
-////        backupFrame[1] = 19;
-////        backupFrame[2] = 20;
-////        backupFrame[3] = 21;
-////        backupFrame[4] = 22;
-////        backupFrame[5] = 23;
-////        backupFrame[6] = 24;
-////        backupFrame[7] = 25;
-////        backupFrame[8] = 26;
-////        backupFrame[9] = 27;
-////        backupFrame[10] = 28;
-////        backupFrame[11] = 29;
-////        backupFrame[12] = 30;
-////        backupFrame[13] = 31;
-////        backupFrame[14] = 32;
-////        backupFrame[15] = 33;
-////        backupFrame[16] = 34;
-////        backupFrame[17] = 35;
-////        backupFrame[18] = 36;
-////        backupFrame[19] = 0xAA;
+            }
+            //Third, check if frame is valid
+            else
+            {
+                //Tracing the header
+                if(*(uint32_t *)(rcvdFrame) != (HEADER_NAN))
+                {
+                    printf(KYEL"Jumbled frame: "RESET);
+                    for(int i = 0; i < RCV_THRESHOLD; i++)
+                    {
+                        backupFrame[i] = rcvdFrame[i];
+                        printf(KYEL"%2x ", rcvdFrame[i]);
+                    }
+                    printf("\n"RESET);
+                    viconUpdateFlag = UP;
+                }
+                else // header = HEADER_NAN
+                {
+                    printf(KBLU "Recieved well-aligned message... ^,^!\n");
+                    for(int i = 0; i< RCV_THRESHOLD; i++)
+                        backupFrame[i] = rcvdFrame[i];
+                    //A precautious flush to remove any possible buffered message
+                    tcflush(fd, TCIOFLUSH);
+                    viconUpdateFlag = UP;
+                }
+            }
+        }
+        //If no vicon data has arrived then notify and go on
+        else
+        {
+            printf(KWHT "No message has arrived...\n\n\n" RESET);
+        }
 
-//        if(viconUpdateFlag == UP)
-//        {
-//            viconUpdateFlag = DOWN;
+//        backupFrame[20] = 0xAA;
+//        backupFrame[21] = 0xAA;
+//        backupFrame[22] = 0x7F;
+//        backupFrame[23] = 1;
+//        backupFrame[24] = 2;
+//        backupFrame[25] = 3;
+//        backupFrame[26] = 4;
+//        backupFrame[27] = 5;
+//        backupFrame[28] = 6;
+//        backupFrame[29] = 7;
+//        backupFrame[30] = 8;
+//        backupFrame[31] = 9;
+//        backupFrame[32] = 10;
+//        backupFrame[33] = 11;
+//        backupFrame[34] = 12;
+//        backupFrame[35] = 13;
+//        backupFrame[36] = 14;
+//        backupFrame[37] = 15;
+//        backupFrame[38] = 16;
+//        backupFrame[39] = 17;
+//        backupFrame[0] = 18;
+//        backupFrame[1] = 19;
+//        backupFrame[2] = 20;
+//        backupFrame[3] = 21;
+//        backupFrame[4] = 22;
+//        backupFrame[5] = 23;
+//        backupFrame[6] = 24;
+//        backupFrame[7] = 25;
+//        backupFrame[8] = 26;
+//        backupFrame[9] = 27;
+//        backupFrame[10] = 28;
+//        backupFrame[11] = 29;
+//        backupFrame[12] = 30;
+//        backupFrame[13] = 31;
+//        backupFrame[14] = 32;
+//        backupFrame[15] = 33;
+//        backupFrame[16] = 34;
+//        backupFrame[17] = 35;
+//        backupFrame[18] = 36;
+//        backupFrame[19] = 0xAA;
 
-//            //Tracing the header
-//            headerIndex = 0xFF;
-//            //check if header is in the middle of frame
-//            for(int i = 0; i < RCV_THRESHOLD - 4; i++)
-//                if(*(uint32_t *)(backupFrame + i) == HEADER_NAN)
-//                {
-//                    headerIndex = i;
-//                    //swapping segments
-//                    for(int j = 0; j < RCV_THRESHOLD - headerIndex; j++)
-//                        rcvdFrame[j] = backupFrame[headerIndex + j];
-//                    for(int j = RCV_THRESHOLD - headerIndex; j < RCV_THRESHOLD; j++)
-//                        rcvdFrame[j] = backupFrame[j - RCV_THRESHOLD + headerIndex];
+        if(viconUpdateFlag == UP)
+        {
+            viconUpdateFlag = DOWN;
+
+            //Tracing the header
+            headerIndex = 0xFF;
+            //check if header is in the middle of frame
+            for(int i = 0; i < RCV_THRESHOLD - 4 + 1; i++)
+                if(*(uint32_t *)(backupFrame + i) == HEADER_NAN)
+                {
+                    headerIndex = i;
+                    //swapping segments
+                    for(int j = 0; j < RCV_THRESHOLD - headerIndex; j++)
+                        rcvdFrame[j] = backupFrame[headerIndex + j];
+                    for(int j = RCV_THRESHOLD - headerIndex; j < RCV_THRESHOLD; j++)
+                        rcvdFrame[j] = backupFrame[j - RCV_THRESHOLD + headerIndex];
+                    for(int j = 0; j < RCV_THRESHOLD; j++)
+                        backupFrame[j] = rcvdFrame[j];
+
 //                    for(int j = 0; j < RCV_THRESHOLD; j++)
-//                        backupFrame[j] = rcvdFrame[j];
+//                        printf(KYEL"%2x ", backupFrame[j]);
+//                    printf("\n"RESET);
 
-////                    for(int j = 0; j < RCV_THRESHOLD; j++)
-////                        printf(KYEL"%2x ", backupFrame[j]);
-////                    printf("\n"RESET);
+                    break;
+                }
+            if(headerIndex == 0xFF)
+            {
+                printf(KYEL"Possible seperated header!\n");
+                for(int j = 0; j < 3; j++)
+                {
+                    //check if header is seperated to the two ends, only three cases
+                    uint8_T backupFrameLastByte = backupFrame[RCV_THRESHOLD-1];
+                    for(int i = RCV_THRESHOLD - 1; i > 0; i--)
+                        backupFrame[i] = backupFrame[i-1];
+                    backupFrame[0] = backupFrameLastByte;
 
-//                    break;
-//                }
-//            if(headerIndex == 0xFF)
-//            {
-//                printf(KYEL"Possible seperated header!\n");
-//                for(int j = 0; j < 3; j++)
-//                {
-//                    //check if header is seperated to the two ends, only three cases
-//                    uint8_T backupFrameLastByte = backupFrame[RCV_THRESHOLD-1];
-//                    for(int i = RCV_THRESHOLD - 1; i > 0; i--)
-//                        backupFrame[i] = backupFrame[i-1];
-//                    backupFrame[0] = backupFrameLastByte;
+                    if(*(uint32_t *)(backupFrame) == HEADER_NAN)
+                    {
+                        headerIndex = RCV_THRESHOLD - j - 1;
+                        break;
+                    }
+                }
+            }
+            printf(KGRN"Header index: %d\n"RESET, headerIndex);
 
-//                    if(*(uint32_t *)(backupFrame) == HEADER_NAN)
-//                    {
-//                        headerIndex = RCV_THRESHOLD - j - 1;
-//                        break;
-//                    }
-//                }
-//            }
-//            printf(KGRN"Header index: %d\n"RESET, headerIndex);
+            printf(KGRN"#");
+            printf("%#8x$", *(uint32_t *)(backupFrame));
+            bool validValues = true;
+            for(int i = 1; i < RCV_THRESHOLD/4; i++)
+            {
+                printf("%f$", *(float *)(backupFrame + i*4));
+                if(abs(*(float *)(backupFrame + i*4)) > 20)
+                    validValues = false;
+            }
+            printf("\n"RESET);
 
-//            printf(KGRN"#");
-//            printf("%#8x$", *(uint32_t *)(backupFrame));
-//            for(int i = 1; i < RCV_THRESHOLD/4; i++)
-//                printf("%f$", *(float *)(backupFrame + i*4));
-//            printf("\n"RESET);
-
-//            viconX = *(float *)(backupFrame + 4);
-//            viconY = *(float *)(backupFrame + 8);
-//            viconZ = *(float *)(backupFrame + 12);
-//            viconXd = *(float *)(backupFrame + 16);
-//            viconYd = *(float *)(backupFrame + 20);
-//            viconZd = *(float *)(backupFrame + 24);
-//        }
+            if(validValues)
+            {
+                viconX = *(float *)(backupFrame + 4);
+                viconY = *(float *)(backupFrame + 8);
+                viconZ = *(float *)(backupFrame + 12);
+                viconXd = *(float *)(backupFrame + 16);
+                viconYd = *(float *)(backupFrame + 20);
+                viconZd = *(float *)(backupFrame + 24);
+            }
+        }
 
         //get the range to an anchor
         rcmRangeTo(destNodeId, RCM_ANTENNAMODE_TXA_RXA, 0, NULL, &rangeInfo, &dataInfo, &scanInfo, &fullScanInfo);
@@ -809,7 +830,7 @@ int main(int argc, char *argv[])
             dists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
 
             //step the model
-            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, 1.0, 3.0);
+            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, 1.0, 5.0);
             //trilaterating to compare
             trilat_Obj.step(ancs, dists, trilatPos);
 
@@ -875,7 +896,7 @@ int main(int argc, char *argv[])
 
             fout << "i = [i " << nodeId << "]; d = [d " << dists[nodeId - 1] << "]; x = [x " << x_est[0] << "]; y = [y " << x_est[1] << "]; z = [z " << x_est[2] << "]; ";
             fout << "p1 = [p1 " << ekf_Obj.ekf_mf_B.P_pre[0] << "]; p2 = [p2 "<<ekf_Obj.ekf_mf_B.P_pre[7]<<"]; p3 = [p3 "<<ekf_Obj.ekf_mf_B.P_pre[14]<<"]; ";
-            fout << "X=[X " << trilatPos[0] << "]; Y=[Y " << trilatPos[1] << "]; Z=[Z " << trilatPos[2] << "]; ";
+            fout << "X=[X " << viconX << "]; Y=[Y " << viconY << "]; Z=[Z " << viconZ << "]; ";
             fout << "dt = [dt "<<deltat<<"]; loss = [loss "<<faultyRangingCount / (double)loopCount * 100<<"]; " << endl;
 
             lastRangingSuccesful = true;

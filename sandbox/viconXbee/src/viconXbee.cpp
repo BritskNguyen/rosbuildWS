@@ -97,15 +97,15 @@ int main(int argc, char **argv)
 	else
         printf(KYEL "Couldn't retrieve param 'viconnNodeRate', applying default value %dHz\n"RESET, viconNodeRate);
 
-    if(viconXbeeNode.getParam("viconhandshakingModeEnabled", handshakingMode))
+    if(viconXbeeNode.getParam("viconHandshakingModeEnabled", handshakingMode))
     {
         if(handshakingMode)
-            printf(KBLU"Retrieved value 'true' for param 'viconhandshakingModeEnabled'\n"RESET);
+            printf(KBLU"Retrieved value 'true' for param 'viconHandshakingModeEnabled'\n"RESET);
         else
-            printf(KBLU"Retrieved value 'false' for param 'viconhandshakingModeEnabled'\n"RESET);
+            printf(KBLU"Retrieved value 'false' for param 'viconHandshakingModeEnabled'\n"RESET);
     }
     else
-        printf(KBLU"Couldn't retrieve param 'viconhandshakingModeEnabled'. Using default mode with handshake\n"RESET);
+        printf(KYEL"Couldn't retrieve param 'viconHandshakingModeEnabled'. Using default mode with handshake\n"RESET);
 
 	ros::Publisher viconPosePublisher = viconXbeeNode.advertise<viconXbee::viconPoseMsg>("viconPoseTopic", 1);
 	ros::Publisher viconMocapPublisher = viconXbeeNode.advertise<geometry_msgs::PoseStamped>("mocap/pose", 1);
@@ -320,6 +320,7 @@ int main(int argc, char **argv)
 			else
 				printf(KWHT "No message has arrived...\n\n\n" RESET);
 		}
+
 		if(publishFlag == UP)
 		{
 			publishFlag = DOWN;

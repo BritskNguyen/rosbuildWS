@@ -6,7 +6,8 @@
     <param name="rcmSerialPort" type="string" value="/dev/ttyACM0" />
 	<param name="rcmLocalizationRate" type="string" value="20"/>
 	<param name="viconSerialPort" type="string" value="/dev/ttyUSB0"/>
-	<param name="viconhandshakingModeEnabled" type="bool" value="true"/>
+	<param name="viconAsyncMode" type="bool" value="false"/>
+	<param name="viconHandshakingModeEnabled" type="bool" value="false"/>
 
   </node>
   
