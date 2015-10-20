@@ -199,6 +199,7 @@ int main(int argc, char **argv)
 		{
 			msgFlag = DOWN;
 			rcvdBytesCount = read(fd,rcvdFrame, RCV_THRESHOLD);
+            tcflush(fd, TCIOFLUSH);
 			if(rcvdBytesCount == -1)
 			{
 				faultCount++;
@@ -217,41 +218,75 @@ int main(int argc, char **argv)
 				//Tracing the header
 				if(*(uint32_t *)(rcvdFrame) != (HEADER_NAN))
 				{
-					faultCount++;
-					printf(KYEL "Lost alignment...\n" RESET);
-//					for(int i = 0; i < RCV_THRESHOLD/4; i++)
-//						printf("%f$", *(uint32_t *)(rcvdFrame + i*4));
-					//tracing the header
-					headerIndex = 0xFF;
-					for(int i = 0; i < RCV_THRESHOLD - 4; i++)
-						if(*(uint32_t *)(rcvdFrame + i) == HEADER_NAN)
-							headerIndex = i;
-					if(headerIndex == 0xFF)
-					{
-						printf(KRED "No Header detected T_T...\n" RESET);
-					}
-					else
-					{
-						printf(KYEL "Header detected, reconstructing frame...\n");
-						for(int i = 0; i < headerIndex; i++)
-							frame32[i] = backupFrame[i + headerIndex];
-						for(int i = headerIndex; i < RCV_THRESHOLD; i++)
-							frame32[i] = rcvdFrame[i - headerIndex];
+                    printf(KYEL"Jumbled frame, reconstructed: "RESET);
+                    for(int i = 0; i < RCV_THRESHOLD; i++)
+                    {
+                        backupFrame[i] = rcvdFrame[i];
+                        //printf(KYEL"%2x ", rcvdFrame[i]);
+                    }
+                    printf("\n"RESET);
 
-						printf("#");
-						printf("%#8x$", *(uint32_t *)(frame32));
-						for(int i = 1; i < RCV_THRESHOLD/4; i++)
-							printf("%f$", *(float *)(frame32 + i*4));
-						printf("# %f # %f \n\n" RESET,
-								(float)validCount/(loopCount - freeCount),
-								(float)faultCount/(loopCount - freeCount)
-								);
+                    headerIndex = 0xFF;
+                    //check if header is in the middle of frame
+                    for(int i = 0; i < RCV_THRESHOLD - 4; i++)
+                        if(*(uint32_t *)(backupFrame + i) == HEADER_NAN)
+                        {
+                            headerIndex = i;
+                            //swapping segments
+                            for(int j = 0; j < RCV_THRESHOLD - headerIndex; j++)
+                                rcvdFrame[j] = backupFrame[headerIndex + j];
+                            for(int j = RCV_THRESHOLD - headerIndex; j < RCV_THRESHOLD; j++)
+                                rcvdFrame[j] = backupFrame[j - RCV_THRESHOLD + headerIndex];
+                            for(int j = 0; j < RCV_THRESHOLD; j++)
+                                backupFrame[j] = rcvdFrame[j];
 
-						for(int i = 0; i < RCV_THRESHOLD; i++)
-							backupFrame[i] = rcvdFrame[i];
-					}
-					//A magical flush that appears to solve the misalignment...
-					tcflush(fd, TCIOFLUSH);
+                            break;
+                        }
+                    if(headerIndex == 0xFF)
+                    {
+                        printf(KYEL"Possible seperated header!\n");
+                        for(int j = 0; j < 3; j++)
+                        {
+                            //check if header is seperated to the two ends, only three cases
+                            uint8_t backupFrameLastByte = backupFrame[RCV_THRESHOLD-1];
+                            for(int i = RCV_THRESHOLD - 1; i > 0; i--)
+                                backupFrame[i] = backupFrame[i-1];
+                            backupFrame[0] = backupFrameLastByte;
+
+                            if(*(uint32_t *)(backupFrame) == HEADER_NAN)
+                            {
+                                headerIndex = RCV_THRESHOLD - j - 1;
+                                break;
+                            }
+                        }
+                    }
+                    //printf(KGRN"Header index: %d\n"RESET, headerIndex);
+
+                    printf(KYEL"#");
+                    printf("%#8x$", *(uint32_t *)(backupFrame));
+                    for(int i = 1; i < RCV_THRESHOLD/4; i++)
+                    {
+                        *(float *)(rcvdFrame + i*4) = *(float *)(backupFrame + i*4);
+                        printf("%f$", *(float *)(backupFrame + i*4));
+                    }
+                    printf("\n"RESET);
+                    //In majority of cases we can accept this frame
+                    publishFlag = UP;
+                    validCount++;
+                    //check if no variable exceeds a limit
+                    for(int i = 1; i < RCV_THRESHOLD/4; i++)
+                        if(abs(*(float *)(rcvdFrame + i*4)) > 20)   //Positions, speeds, orientations aren't supposed
+                                                                    //to exceed 20
+                        {
+                            validCount -=2;
+                            printf(KYEL"Value was discredited!\n"RESET);
+                            publishFlag = DOWN;
+                            tcflush(fd, TCIOFLUSH);
+                            break;
+                        }
+                    printf("\n"RESET);
+
+
 				}
 				else // header = HEADER_NAN
 				{

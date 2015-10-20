@@ -78,7 +78,7 @@
 //#define DEFAULT_DEST_NODE_ID    301
 #define     DFLT_PORT           "/dev/ttyUSB0"
 #define     DFLT_NODE_RATE      "10"
-#define     TRILAT_TIMES        100
+#define     TRILAT_TIMES        20
 
 //_____________________________________________________________________________
 //
@@ -236,17 +236,17 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    //Install the signal handler before making the device asynchronous
-    saio.sa_handler = signal_handler_IO;
-    sigemptyset(&saio.sa_mask);
-    saio.sa_flags = 0;
-    saio.sa_restorer = NULL;
-    sigaction(SIGIO,&saio,NULL);
+//    //Install the signal handler before making the device asynchronous
+//    saio.sa_handler = signal_handler_IO;
+//    sigemptyset(&saio.sa_mask);
+//    saio.sa_flags = 0;
+//    saio.sa_restorer = NULL;
+//    sigaction(SIGIO,&saio,NULL);
 
-    //allow the process to receive SIGIO
-    fcntl(fd, F_SETOWN, getpid());
-    //Make the file descriptor asynchronous
-    fcntl(fd, F_SETFL, O_ASYNC | O_NONBLOCK);
+//    //allow the process to receive SIGIO
+//    fcntl(fd, F_SETOWN, getpid());
+//    //Make the file descriptor asynchronous
+//    fcntl(fd, F_SETFL, O_ASYNC | O_NONBLOCK);
 
     //Set up serial settings
     memset(&newtio, 0,sizeof(newtio));
@@ -281,7 +281,7 @@ int main(int argc, char *argv[])
         fpSerial = NULL;
     }
         tcflush(fd, TCIOFLUSH);
-//-----------------------------------vicon Serial Initialization Done-------------------------------------
+////-----------------------------------vicon Serial Initialization Done-------------------------------------
 
     int destNodeId;
     ros::Time timeStart, timeEnd;
@@ -498,12 +498,12 @@ int main(int argc, char *argv[])
     fout << "X=[X " << initialPos[0] << "]; Y=[Y " << initialPos[1] << "]; Z=[Z " << initialPos[2] << "]; ";
     fout << "dt=[dt " << deltat << "]; loss=[loss " << 0 << "]; " << endl;
 
-    fout << "i=[i" << 3 << "]; d=[d " << dists[2] << "]; x=[x " << initialPos[0] << "]; y=[y " << initialPos[1] << "]; z=[z " << initialPos[2] << "]; ";
+    fout << "i=[i " << 3 << "]; d=[d " << dists[2] << "]; x=[x " << initialPos[0] << "]; y=[y " << initialPos[1] << "]; z=[z " << initialPos[2] << "]; ";
     fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "]; p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "]; p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "]; ";
     fout << "X=[X " << initialPos[0] << "]; Y=[Y " << initialPos[1] << "]; Z=[Z " << initialPos[2] << "]; ";
     fout << "dt=[dt " << deltat << "]; loss=[loss " << 0 << "]; " << endl;
 
-    fout << "i=[i" << 4 << "]; d=[d " << dists[3] << "]; x=[x " << initialPos[0] << "]; y=[y " << initialPos[1] << "]; z=[z " << initialPos[2] << "]; ";
+    fout << "i=[i " << 4 << "]; d=[d " << dists[3] << "]; x=[x " << initialPos[0] << "]; y=[y " << initialPos[1] << "]; z=[z " << initialPos[2] << "]; ";
     fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "]; p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "]; p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "]; ";
     fout << "X=[X " << initialPos[0] << "]; Y=[Y " << initialPos[1] << "]; Z=[Z " << initialPos[2] << "]; ";
     fout << "dt=[dt " << deltat << "]; loss=[loss " << 0 << "]; " << endl;
@@ -809,10 +809,13 @@ int main(int argc, char *argv[])
             dists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
 
             //step the model
-            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, 0.0, 5.0);
+            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, 1.0, 3.0);
+            //trilaterating to compare
+            trilat_Obj.step(ancs, dists, trilatPos);
 
             //Print and log state values
             if (lastRangingSuccesful)
+            {
                 printf("i=[i %d]; d=[d %6.4f]; x=[x %6.4f]; y=[y %6.4f]; z=[z %6.4f]; p1=[p1 %6.4f]; p2=[p2 %6.4f]; p3=[p3 %6.4f]; dt=[dt %6.4f]; loss=[loss %4.2f];\n",
                        nodeId,
                        dists[nodeId - 1],
@@ -823,6 +826,8 @@ int main(int argc, char *argv[])
                         deltat,
                         faultyRangingCount / (double)loopCount * 100
                         );
+                printf("X=[X %6.4f]; Y=[Y %6.4f]; Z=[Z %6.4f]\n", trilatPos[0], trilatPos[1], trilatPos[2]);
+            }
             else
                 printf("\nI=[I %d]; D=[D %6.4f]; X=[X %6.4f]; Y=[Y %6.4f]; Z=[Z %6.4f]; P1=[P1 %6.4f]; P2=[P2 %6.4f]; P3=[P3 %6.4f]; DT=[DT %6.4f]; LOSS=[LOSS %4.2f];\n\n",
                        nodeId,
@@ -870,7 +875,7 @@ int main(int argc, char *argv[])
 
             fout << "i = [i " << nodeId << "]; d = [d " << dists[nodeId - 1] << "]; x = [x " << x_est[0] << "]; y = [y " << x_est[1] << "]; z = [z " << x_est[2] << "]; ";
             fout << "p1 = [p1 " << ekf_Obj.ekf_mf_B.P_pre[0] << "]; p2 = [p2 "<<ekf_Obj.ekf_mf_B.P_pre[7]<<"]; p3 = [p3 "<<ekf_Obj.ekf_mf_B.P_pre[14]<<"]; ";
-            fout << "X=[X " << viconX << "]; Y=[Y " << viconY << "]; Z=[Z " << viconZ << "]; ";
+            fout << "X=[X " << trilatPos[0] << "]; Y=[Y " << trilatPos[1] << "]; Z=[Z " << trilatPos[2] << "]; ";
             fout << "dt = [dt "<<deltat<<"]; loss = [loss "<<faultyRangingCount / (double)loopCount * 100<<"]; " << endl;
 
             lastRangingSuccesful = true;
