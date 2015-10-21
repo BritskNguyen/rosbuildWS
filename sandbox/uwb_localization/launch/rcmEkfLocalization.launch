@@ -5,6 +5,8 @@
   <node respawn="true" pkg="uwb_localization" type="uwb_localization_node" name="uwb_localization_node0" output="screen">
     <param name="rcmSerialPort" type="string" value="/dev/ttyACM0" />
 	<param name="rcmLocalizationRate" type="string" value="20"/>
+	<param name="enableCalib" type="double" value="0.0"/>
+	<param name="medianFilterSize" type="double" value="3.0"/>
 	<param name="viconSerialPort" type="string" value="/dev/ttyUSB0"/>
 	<param name="viconAsyncMode" type="bool" value="false"/>
 	<param name="viconHandshakingModeEnabled" type="bool" value="false"/>

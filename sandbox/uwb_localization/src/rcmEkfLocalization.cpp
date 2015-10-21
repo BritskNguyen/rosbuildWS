@@ -103,7 +103,7 @@ uint8_t		misAlgnFlag = DOWN;
 uint8_t		msgFlag = DOWN;
 uint8_t		viconUpdateFlag = DOWN;
 uint8_t		headerIndex = 0xFF;
-float viconX , viconY, viconZ, viconXd, viconYd, viconZd;
+float viconX , viconY, viconZ, viconXd, viconYd, viconZd, viconRoll, viconPitch, viconYaw;
 
 void signal_handler_IO(int status)
 {
@@ -119,10 +119,17 @@ void signal_handler_IO(int status)
 static ekf_mfClass ekf_Obj;
 static double ancs[12] =
 {
-    -3.0, 3.0, 3.0, -3.0,
-    -3.0, -3.0, 3.0, 3.0,
-    -1.78, -1.15, -1.31, -1.31
+//    -3.0, 3.0, 3.0, -3.0,
+//    -3.0, -3.0, 3.0, 3.0,
+//    -1.78, -1.15, -1.31, -1.31
     //-1.78, -0.1 , -1.31, -0.21
+//    -0.5, 0.5, 0.5, -0.5,
+//    -0.5, -0.5, 0.5, 0.5,
+//    0, 0, 0, 0
+    0.0, 0.5, 0.5, 0.0,
+    0.0, 0.0, 0.5, 0.5,
+    0, 0, 0, 0
+
 };
 static double R = 0.2;
 //inputs for the ekf
@@ -138,10 +145,19 @@ static double x_est[6];
 static trilatModelClass trilat_Obj;
 static double ancsTranspose[12] =
 {
-    -3.0, -3.0, -1.71,
-    3.0, -3.0, -1.15,/*-0.1,//*/
-    3.0, 3.0, -1.31,
-    -3.0, 3.0, -1.31/*-0.21//*/
+//    -3.0, -3.0, -1.71,
+//    3.0, -3.0, -1.15,/*-0.1,//*/
+//    3.0, 3.0, -1.31,
+//    -3.0, 3.0, -1.31/*-0.21//*/
+
+    //    -0.5, -0.5, 0,
+//    0.5, -0.5, 0,/*-0.1,//*/
+//    0.5, 0.5, 0,
+//    -0.5, 0.5, 0/*-0.21//*/
+    0.0, 0.0, 0.0,
+    0.5, 0.0, 0.0,/*-0.1,//*/
+    0.5, 0.5, 0,
+    0.0, 0.5, 0/*-0.21//*/
 };
 static double tempDists[4] = { 0, 0, 0, 0 };//{ 7.51, 13.03, 12.69, 6.90 };
 static double trilatPos[3] = { 0, 0, 0 };
@@ -181,10 +197,10 @@ int main(int argc, char *argv[])
     //Create ros handler to node
     ros::init(argc, argv, "uwb_localization");
     ros::NodeHandle uwbViconNodeHandle("~");
-    string serialPortName = string(DFLT_PORT);
-    string rcmEkfRate = string(DFLT_NODE_RATE);
+
     uint32_T nodeRate = 10;
 
+    string serialPortName = string(DFLT_PORT);
     if(uwbViconNodeHandle.getParam("rcmSerialPort", serialPortName))
         printf(KBLU"Retrieved value %s for param 'rcmSerialPort'!\n"RESET, serialPortName.data());
     else
@@ -194,10 +210,31 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    string rcmEkfRate = string(DFLT_NODE_RATE);
     if(uwbViconNodeHandle.getParam("rcmLocalizationRate", rcmEkfRate))
         printf(KBLU"Retrieved value %s for param 'rcmLocalizationRate'\n"RESET, rcmEkfRate.data());
     else
         printf(KYEL "Couldn't retrieve param 'rcmLocalizationRate', applying default value %sHz\n"RESET, rcmEkfRate.data());
+
+    double enableCalib = 0;
+    if(uwbViconNodeHandle.getParam("enableCalib", enableCalib))
+        printf(KBLU"Retrieved value %f for param 'enableCalib'!\n"RESET, enableCalib);
+    else
+    {
+        //serialPortName = string(DFLT_PORT);
+        printf(KYEL "Couldn't retrieve param 'enableCalib', using default mode without caliberation!\n"RESET);
+        enableCalib = 0.0;
+    }
+
+    double medianFilterSize = 5.0;
+    if(uwbViconNodeHandle.getParam("medianFilterSize", medianFilterSize))
+        printf(KBLU"Retrieved value %f for param 'medianFilterSize'!\n"RESET, medianFilterSize);
+    else
+    {
+        //serialPortName = string(DFLT_PORT);
+        medianFilterSize = 5.0;
+        printf(KYEL "Couldn't retrieve param 'medianFilterSize', using default size %f!\n"RESET, medianFilterSize);
+    }
 
 //-------------------------------------Vicon Serial Parameter Collection-------------------------------------------
     string viconSerialPortName = string(DFLT_PORT);
@@ -486,6 +523,10 @@ int main(int argc, char *argv[])
 
     printf(" init pos: x = %f, y = %f, z = %f\n", initialPos[0], initialPos[1], initialPos[2]);
 
+    initialPos[0] = -2.0;
+    initialPos[1] = -2.0;
+    initialPos[2] = -0.8;
+
     //Assign initial positions and anchor locations to the ekf
     for (int i = 0; i < 12; i++)
         ekf_Obj.ekf_mf_P.ancs[i] = ancsTranspose[i];
@@ -505,25 +546,37 @@ int main(int argc, char *argv[])
     //initialize ekf object
     ekf_Obj.initialize();
 
-    fout << "i=" << 1 << "; d=" << dists[0] << "; x=" << initialPos[0] << "; y=" << initialPos[1] << "; z=" << initialPos[2] << "; ";
-    fout << "p1=" << ekf_Obj.ekf_mf_P.P_0[0] << "; p2=" << ekf_Obj.ekf_mf_P.P_0[7] << "; p3=" << ekf_Obj.ekf_mf_P.P_0[14] << "; ";
-    fout << "X=" << initialPos[0] << "; Y=" << initialPos[1] << "; Z=" << initialPos[2] << "; ";
-    fout << "dt=" << deltat << "; loss=" << 0 << "; " << endl;
+    fout << "i=" << 1 << ";d=" << dists[0] << ";x=" << initialPos[0] << ";y=" << initialPos[1] << ";z=" << initialPos[2] << ";";
+    fout << "xd=" << 0 << ";yd=" << 0 << ";zd=" << 0 << ";";
+    fout << "p1=" << ekf_Obj.ekf_mf_P.P_0[0] << ";p2=" << ekf_Obj.ekf_mf_P.P_0[7] << ";p3=" << ekf_Obj.ekf_mf_P.P_0[14] << ";";
+    fout << "X=" << initialPos[0] << ";Y=" << initialPos[1] << ";Z=" << initialPos[2] << ";";
+    fout << "Xd=" << 0 << ";Yd=" << 0 << ";Zd=" << 0 << ";";
+    fout << "Xtr=" << initialPos[0] << ";Ytr=" << initialPos[1] << ";Ztr=" << initialPos[2] << ";";
+    fout << "dt=" << deltat << ";loss=" << 0 << ";" << endl;
 
-    fout << "i=[i " << 2 << "]; d=[d " << dists[1] << "]; x=[x " << initialPos[0] << "]; y=[y " << initialPos[1] << "]; z=[z " << initialPos[2] << "]; ";
-    fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "]; p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "]; p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "]; ";
-    fout << "X=[X " << initialPos[0] << "]; Y=[Y " << initialPos[1] << "]; Z=[Z " << initialPos[2] << "]; ";
-    fout << "dt=[dt " << deltat << "]; loss=[loss " << 0 << "]; " << endl;
+    fout << "i=[i " << 2 << "];d=[d " << dists[1] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
+    fout << "xd=[xd " << 0 << "];yd=[yd " << 0 << "];zd=[zd " << 0 << "];";
+    fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "];p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "];p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "];";
+    fout << "X=[X " << initialPos[0] << "];Y=[Y " << initialPos[1] << "];Z=[Z " << initialPos[2] << "];";
+    fout << "Xd=[Xd " << 0 << "];Yd=[Yd " << 0 << "];Zd=[Zd " << 0 << "];";
+    fout << "Xtr=[Xtr " << initialPos[0] << "];Ytr=[Ytr " << initialPos[1] << "];Ztr=[Ztr " << initialPos[2] << "];";
+    fout << "dt=[dt " << deltat << "];loss=[loss " << 0 << "];" << endl;
 
-    fout << "i=[i " << 3 << "]; d=[d " << dists[2] << "]; x=[x " << initialPos[0] << "]; y=[y " << initialPos[1] << "]; z=[z " << initialPos[2] << "]; ";
-    fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "]; p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "]; p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "]; ";
-    fout << "X=[X " << initialPos[0] << "]; Y=[Y " << initialPos[1] << "]; Z=[Z " << initialPos[2] << "]; ";
-    fout << "dt=[dt " << deltat << "]; loss=[loss " << 0 << "]; " << endl;
+    fout << "i=[i " << 3 << "];d=[d " << dists[2] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
+    fout << "xd=[xd " << 0 << "];yd=[yd " << 0 << "];zd=[zd " << 0 << "];";
+    fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "];p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "];p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "];";
+    fout << "X=[X " << initialPos[0] << "];Y=[Y " << initialPos[1] << "];Z=[Z " << initialPos[2] << "];";
+    fout << "Xd=[Xd " << 0 << "];Yd=[Yd " << 0 << "];Zd=[Zd " << 0 << "];";
+    fout << "Xtr=[Xtr " << initialPos[0] << "];Ytr=[Ytr " << initialPos[1] << "];Ztr=[Ztr " << initialPos[2] << "];";
+    fout << "dt=[dt " << deltat << "];loss=[loss " << 0 << "];" << endl;
 
-    fout << "i=[i " << 4 << "]; d=[d " << dists[3] << "]; x=[x " << initialPos[0] << "]; y=[y " << initialPos[1] << "]; z=[z " << initialPos[2] << "]; ";
-    fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "]; p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "]; p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "]; ";
-    fout << "X=[X " << initialPos[0] << "]; Y=[Y " << initialPos[1] << "]; Z=[Z " << initialPos[2] << "]; ";
-    fout << "dt=[dt " << deltat << "]; loss=[loss " << 0 << "]; " << endl;
+    fout << "i=[i " << 4 << "];d=[d " << dists[3] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
+    fout << "xd=[xd " << 0 << "];yd=[yd " << 0 << "];zd=[zd " << 0 << "];";
+    fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "];p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "];p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "];";
+    fout << "X=[X " << initialPos[0] << "];Y=[Y " << initialPos[1] << "];Z=[Z " << initialPos[2] << "];";
+    fout << "Xd=[Xd " << 0 << "];Yd=[Yd " << 0 << "];Zd=[Zd " << 0 << "];";
+    fout << "Xtr=[Xtr " << initialPos[0] << "];Ytr=[Ytr " << initialPos[1] << "];Ztr=[Ztr " << initialPos[2] << "];";
+    fout << "dt=[dt " << deltat << "];loss=[loss " << 0 << "];" << endl;
 
     nodeId = 1;
     bool lastRangingSuccesful = true;
@@ -814,6 +867,10 @@ int main(int argc, char *argv[])
                 viconXd = *(float *)(backupFrame + 16);
                 viconYd = *(float *)(backupFrame + 20);
                 viconZd = *(float *)(backupFrame + 24);
+                viconRoll = *(float *)(backupFrame + 28);
+                viconPitch = *(float *)(backupFrame + 32);
+                viconYaw = *(float *)(backupFrame + 36);
+
             }
         }
 
@@ -830,7 +887,7 @@ int main(int argc, char *argv[])
             dists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
 
             //step the model
-            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, 1.0, 5.0);
+            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, enableCalib, medianFilterSize);
             //trilaterating to compare
             trilat_Obj.step(ancs, dists, trilatPos);
 
@@ -894,10 +951,12 @@ int main(int argc, char *argv[])
             U2F_CS1 = CSA;
             U2F_CS2 = CSB;
 
-            fout << "i = [i " << nodeId << "]; d = [d " << dists[nodeId - 1] << "]; x = [x " << x_est[0] << "]; y = [y " << x_est[1] << "]; z = [z " << x_est[2] << "]; ";
-            fout << "p1 = [p1 " << ekf_Obj.ekf_mf_B.P_pre[0] << "]; p2 = [p2 "<<ekf_Obj.ekf_mf_B.P_pre[7]<<"]; p3 = [p3 "<<ekf_Obj.ekf_mf_B.P_pre[14]<<"]; ";
-            fout << "X=[X " << viconX << "]; Y=[Y " << viconY << "]; Z=[Z " << viconZ << "]; ";
-            fout << "dt = [dt "<<deltat<<"]; loss = [loss "<<faultyRangingCount / (double)loopCount * 100<<"]; " << endl;
+            fout << "i=[i " << nodeId << "];d=[d " << dists[nodeId - 1] << "];x=[x " << x_est[0] << "];y=[y " << x_est[1] << "];z=[z " << x_est[2] << "];";
+            fout << "xd=[xd " << x_est[3] << "];yd=[yd " << x_est[4] << "];zd=[zd " << x_est[6] << "];";
+            fout << "p1=[p1 " << ekf_Obj.ekf_mf_B.P_pre[0] << "];p2=[p2 "<<ekf_Obj.ekf_mf_B.P_pre[7]<<"];p3=[p3 "<<ekf_Obj.ekf_mf_B.P_pre[14]<<"];";
+            fout << "X=[X " << viconX << "];Y=[Y " << viconY << "];Z=[Z " << viconZ << "];" << "Xd=[Xd " << viconXd << "];Yd=[Yd " << viconYd << "];Zd=[Zd " << viconZd << "];";
+            fout << "Xtr=[Xtr " << initialPos[0] << "];Ytr=[Ytr " << initialPos[1] << "];Ztr=[Ztr " << initialPos[2] << "];";
+            fout << "dt=[dt "<<deltat<<"];loss=[loss "<<faultyRangingCount / (double)loopCount * 100<<"];" << endl;
 
             lastRangingSuccesful = true;
         }
