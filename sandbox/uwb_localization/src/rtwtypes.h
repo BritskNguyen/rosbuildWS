@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'ekf_mf'.
 //
-// Model version                  : 1.325
+// Model version                  : 1.328
 // Simulink Coder version         : 8.6 (R2014a) 27-Dec-2013
-// C/C++ source code generated on : Fri Sep 25 23:02:52 2015
+// C/C++ source code generated on : Thu Oct 22 18:28:08 2015
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex
@@ -15,7 +15,6 @@
 //    3. Safety precaution
 // Validation result: Not run
 //
-
 #ifndef __RTWTYPES_H__
 #define __RTWTYPES_H__
 

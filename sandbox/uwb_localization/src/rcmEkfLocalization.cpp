@@ -119,16 +119,18 @@ void signal_handler_IO(int status)
 static ekf_mfClass ekf_Obj;
 static double ancs[12] =
 {
-//    -3.0, 3.0, 3.0, -3.0,
-//    -3.0, -3.0, 3.0, 3.0,
-//    -1.78, -1.15, -1.31, -1.31
-    //-1.78, -0.1 , -1.31, -0.21
+    -3.0, 3.0, 3.0, -3.0,
+    -3.0, -3.0, 3.0, 3.0,
+    //-1.78, -1.15, -1.31, -1.31
+    -1.78, -0.11, -1.31, -0.21
+
 //    -0.5, 0.5, 0.5, -0.5,
 //    -0.5, -0.5, 0.5, 0.5,
 //    0, 0, 0, 0
-    0.0, 0.5, 0.5, 0.0,
-    0.0, 0.0, 0.5, 0.5,
-    0, 0, 0, 0
+
+//    0.0, 0.5, 0.5, 0.0,
+//    0.0, 0.0, 0.5, 0.5,
+//    0, 0, 0, 0
 
 };
 static double R = 0.2;
@@ -145,19 +147,20 @@ static double x_est[6];
 static trilatModelClass trilat_Obj;
 static double ancsTranspose[12] =
 {
-//    -3.0, -3.0, -1.71,
-//    3.0, -3.0, -1.15,/*-0.1,//*/
-//    3.0, 3.0, -1.31,
-//    -3.0, 3.0, -1.31/*-0.21//*/
+    -3.0, -3.0, -1.71,
+    3.0, -3.0, /*-1.15,*/-0.1,
+    3.0, 3.0, -1.31,
+    -3.0, 3.0, /*-1.31*/-0.21
 
-    //    -0.5, -0.5, 0,
+//    -0.5, -0.5, 0,
 //    0.5, -0.5, 0,/*-0.1,//*/
 //    0.5, 0.5, 0,
 //    -0.5, 0.5, 0/*-0.21//*/
-    0.0, 0.0, 0.0,
-    0.5, 0.0, 0.0,/*-0.1,//*/
-    0.5, 0.5, 0,
-    0.0, 0.5, 0/*-0.21//*/
+
+//    0.0, 0.0, 0.0,
+//    0.5, 0.0, 0.0,/*-0.1,//*/
+//    0.5, 0.5, 0,
+//    0.0, 0.5, 0/*-0.21//*/
 };
 static double tempDists[4] = { 0, 0, 0, 0 };//{ 7.51, 13.03, 12.69, 6.90 };
 static double trilatPos[3] = { 0, 0, 0 };
@@ -199,6 +202,43 @@ int main(int argc, char *argv[])
     ros::NodeHandle uwbViconNodeHandle("~");
 
     uint32_T nodeRate = 10;
+
+
+    //localization data
+    std::vector<double> ancsPos;
+    std::vector<int>    ancsId;
+
+    //Collect the anchors IDs
+    if(uwbViconNodeHandle.getParam("ancsId", ancsId))
+    {
+        printf(KBLU"Retrieved anchor IDs: %d, %d, %d, %d\n"RESET, ancsId[0], ancsId[1], ancsId[2], ancsId[3]);
+    }
+    else
+    {
+        printf(KRED "Failed to collect anchor IDs, program exited!\n"RESET);
+        return 0;
+    }
+
+    //Collect the anchors Positions
+    if(uwbViconNodeHandle.getParam("ancsPos", ancsPos))
+    {
+        printf(KBLU"Retrieved anchor positions IDs:\n\t"RESET);
+        printf(KBLU"a%d[%4.2f, %4.2f, %4.2f]\n\t"RESET, ancsId[0], ancsPos[0], ancsPos[1], ancsPos[2]);
+        printf(KBLU"a%d[%4.2f, %4.2f, %4.2f]\n\t"RESET, ancsId[1], ancsPos[3], ancsPos[4], ancsPos[5]);
+        printf(KBLU"a%d[%4.2f, %4.2f, %4.2f]\n\t"RESET, ancsId[2], ancsPos[6], ancsPos[7], ancsPos[8]);
+        printf(KBLU"a%d[%4.2f, %4.2f, %4.2f]\n\t"RESET, ancsId[3], ancsPos[9], ancsPos[10], ancsPos[11]);
+        for(int i =0; i < 12; i++)
+            ancsTranspose[i] = ancsPos[i];
+        for(int i = 0; i < 3; i++)
+            for(int j = 0; j < 4; j++)
+                ancs[i*3 + j] = ancsTranspose[j*4 + i];
+    }
+    else
+    {
+        printf(KRED "Failed to collect anchor IDs, program exited!\n"RESET);
+        return 0;
+    }
+
 
     string serialPortName = string(DFLT_PORT);
     if(uwbViconNodeHandle.getParam("rcmSerialPort", serialPortName))
@@ -270,7 +310,7 @@ int main(int argc, char *argv[])
     else
         printf(KYEL"Couldn't retrieve param 'viconHandshakingModeEnabled'. Using default mode with handshake.\n"RESET);
 
-//-------------------Initialize Vicon Serial Connection---------------------------------------------------
+/*-------------------Initialize Vicon Serial Connection---------------------------------------------------*/
     int fd = -1;
     struct termios newtio;
     struct sigaction saio;           //definition of signal action
@@ -335,7 +375,7 @@ int main(int argc, char *argv[])
         fpSerial = NULL;
     }
         tcflush(fd, TCIOFLUSH);
-////-----------------------------------vicon Serial Initialization Done-------------------------------------
+/*-----------------------------------vicon Serial Initialization Done-------------------------------------*/
 
     int destNodeId;
     ros::Time timeStart, timeEnd;
@@ -513,9 +553,12 @@ int main(int argc, char *argv[])
             dists[j] += tempDists[j];
     }
 
-    //averaging the measurements to get the initial position for the ekf
+    //averaging the measurements to get the initial position for the ekf, also reseting the tempDists for filter value storage
     for (int j = 0; j < 4; j++)
+    {
         dists[j] /= TRILAT_TIMES;
+        tempDists[j] = dists[j];
+    }
     printf("average ranges , d1 = %f; d2 = %f; d3 = %f; d4 = %f\n", dists[0], dists[1], dists[2], dists[3]);
 
     //trilatering
@@ -523,9 +566,9 @@ int main(int argc, char *argv[])
 
     printf(" init pos: x = %f, y = %f, z = %f\n", initialPos[0], initialPos[1], initialPos[2]);
 
-    initialPos[0] = -2.0;
-    initialPos[1] = -2.0;
-    initialPos[2] = -0.8;
+    //initialPos[0] = -2.0;
+    //initialPos[1] = -2.0;
+    //initialPos[2] = -0.8;
 
     //Assign initial positions and anchor locations to the ekf
     for (int i = 0; i < 12; i++)
@@ -546,7 +589,7 @@ int main(int argc, char *argv[])
     //initialize ekf object
     ekf_Obj.initialize();
 
-    fout << "i=" << 1 << ";d=" << dists[0] << ";x=" << initialPos[0] << ";y=" << initialPos[1] << ";z=" << initialPos[2] << ";";
+    fout << "i=" << 1 << ";d=" << dists[0] << ";df=" << tempDists[0] << ";x=" << initialPos[0] << ";y=" << initialPos[1] << ";z=" << initialPos[2] << ";";
     fout << "xd=" << 0 << ";yd=" << 0 << ";zd=" << 0 << ";";
     fout << "p1=" << ekf_Obj.ekf_mf_P.P_0[0] << ";p2=" << ekf_Obj.ekf_mf_P.P_0[7] << ";p3=" << ekf_Obj.ekf_mf_P.P_0[14] << ";";
     fout << "X=" << initialPos[0] << ";Y=" << initialPos[1] << ";Z=" << initialPos[2] << ";";
@@ -554,7 +597,7 @@ int main(int argc, char *argv[])
     fout << "Xtr=" << initialPos[0] << ";Ytr=" << initialPos[1] << ";Ztr=" << initialPos[2] << ";";
     fout << "dt=" << deltat << ";loss=" << 0 << ";" << endl;
 
-    fout << "i=[i " << 2 << "];d=[d " << dists[1] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
+    fout << "i=[i " << 2 << "];d=[d " << dists[1] << "];df=[df " << tempDists[1] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
     fout << "xd=[xd " << 0 << "];yd=[yd " << 0 << "];zd=[zd " << 0 << "];";
     fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "];p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "];p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "];";
     fout << "X=[X " << initialPos[0] << "];Y=[Y " << initialPos[1] << "];Z=[Z " << initialPos[2] << "];";
@@ -562,7 +605,7 @@ int main(int argc, char *argv[])
     fout << "Xtr=[Xtr " << initialPos[0] << "];Ytr=[Ytr " << initialPos[1] << "];Ztr=[Ztr " << initialPos[2] << "];";
     fout << "dt=[dt " << deltat << "];loss=[loss " << 0 << "];" << endl;
 
-    fout << "i=[i " << 3 << "];d=[d " << dists[2] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
+    fout << "i=[i " << 3 << "];d=[d " << dists[2] << "];df=[df " << tempDists[2] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
     fout << "xd=[xd " << 0 << "];yd=[yd " << 0 << "];zd=[zd " << 0 << "];";
     fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "];p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "];p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "];";
     fout << "X=[X " << initialPos[0] << "];Y=[Y " << initialPos[1] << "];Z=[Z " << initialPos[2] << "];";
@@ -570,7 +613,7 @@ int main(int argc, char *argv[])
     fout << "Xtr=[Xtr " << initialPos[0] << "];Ytr=[Ytr " << initialPos[1] << "];Ztr=[Ztr " << initialPos[2] << "];";
     fout << "dt=[dt " << deltat << "];loss=[loss " << 0 << "];" << endl;
 
-    fout << "i=[i " << 4 << "];d=[d " << dists[3] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
+    fout << "i=[i " << 4 << "];d=[d " << dists[3] << "];df=[df " << tempDists[3] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
     fout << "xd=[xd " << 0 << "];yd=[yd " << 0 << "];zd=[zd " << 0 << "];";
     fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "];p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "];p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "];";
     fout << "X=[X " << initialPos[0] << "];Y=[Y " << initialPos[1] << "];Z=[Z " << initialPos[2] << "];";
@@ -631,6 +674,7 @@ int main(int argc, char *argv[])
 //            tempoSleep.sleep();
             msgFlag = DOWN;
             rcvdBytesCount = read(fd,rcvdFrame, RCV_THRESHOLD);
+            tcflush(fd, TCIOFLUSH);
             //First, check if read is successful
             if(rcvdBytesCount == -1)
             {
@@ -887,9 +931,9 @@ int main(int argc, char *argv[])
             dists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
 
             //step the model
-            ekf_Obj.step(dists, deltat, 0, nodeId, x_est, enableCalib, medianFilterSize);
+            ekf_Obj.step(dists, deltat, 0.0, nodeId, enableCalib, medianFilterSize, x_est, tempDists);
             //trilaterating to compare
-            trilat_Obj.step(ancs, dists, trilatPos);
+            trilat_Obj.step(ancs, tempDists, trilatPos);
 
             //Print and log state values
             if (lastRangingSuccesful)
@@ -951,11 +995,11 @@ int main(int argc, char *argv[])
             U2F_CS1 = CSA;
             U2F_CS2 = CSB;
 
-            fout << "i=[i " << nodeId << "];d=[d " << dists[nodeId - 1] << "];x=[x " << x_est[0] << "];y=[y " << x_est[1] << "];z=[z " << x_est[2] << "];";
-            fout << "xd=[xd " << x_est[3] << "];yd=[yd " << x_est[4] << "];zd=[zd " << x_est[6] << "];";
+            fout << "i=[i " << nodeId << "];d=[d " << dists[nodeId - 1] << "];df=[df " << tempDists[nodeId - 1]<< "];x=[x " << x_est[0] << "];y=[y " << x_est[1] << "];z=[z " << x_est[2] << "];";
+            fout << "xd=[xd " << x_est[3] << "];yd=[yd " << x_est[4] << "];zd=[zd " << x_est[5] << "];";
             fout << "p1=[p1 " << ekf_Obj.ekf_mf_B.P_pre[0] << "];p2=[p2 "<<ekf_Obj.ekf_mf_B.P_pre[7]<<"];p3=[p3 "<<ekf_Obj.ekf_mf_B.P_pre[14]<<"];";
             fout << "X=[X " << viconX << "];Y=[Y " << viconY << "];Z=[Z " << viconZ << "];" << "Xd=[Xd " << viconXd << "];Yd=[Yd " << viconYd << "];Zd=[Zd " << viconZd << "];";
-            fout << "Xtr=[Xtr " << initialPos[0] << "];Ytr=[Ytr " << initialPos[1] << "];Ztr=[Ztr " << initialPos[2] << "];";
+            fout << "Xtr=[Xtr " << trilatPos[0] << "];Ytr=[Ytr " << trilatPos[1] << "];Ztr=[Ztr " << trilatPos[2] << "];";
             fout << "dt=[dt "<<deltat<<"];loss=[loss "<<faultyRangingCount / (double)loopCount * 100<<"];" << endl;
 
             lastRangingSuccesful = true;

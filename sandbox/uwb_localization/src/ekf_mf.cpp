@@ -3,9 +3,9 @@
 //
 // Code generated for Simulink model 'ekf_mf'.
 //
-// Model version                  : 1.325
+// Model version                  : 1.328
 // Simulink Coder version         : 8.6 (R2014a) 27-Dec-2013
-// C/C++ source code generated on : Fri Sep 25 23:02:52 2015
+// C/C++ source code generated on : Thu Oct 22 18:28:08 2015
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: ARM Compatible->ARM Cortex
@@ -15,7 +15,6 @@
 //    3. Safety precaution
 // Validation result: Not run
 //
-
 #include "ekf_mf.h"
 
 extern real_T rt_roundd(real_T u);
@@ -36,6 +35,7 @@ extern real_T rt_roundd(real_T u);
 //  UNUSED_PARAMETER(x)
 //    Used to specify that a function parameter (argument) is required but not
 //    accessed by the function body.
+
 #ifndef UNUSED_PARAMETER
 # if defined(__LCC__)
 #   define UNUSED_PARAMETER(x)                                   // do nothing
@@ -44,6 +44,7 @@ extern real_T rt_roundd(real_T u);
 //
 //  This is the semi-ANSI standard way of indicating that an
 //  unused function parameter is required.
+
 #   define UNUSED_PARAMETER(x)         (void) (x)
 # endif
 #endif
@@ -168,18 +169,17 @@ real_T rt_roundd(real_T u)
 }
 
 // Model step function
-void ekf_mfClass::step(const real_T arg_dists[4], real_T arg_deltat, real_T
-  arg_imu, uint8_T arg_nodeId, real_T arg_x_est[6], real_T arg_calibEnable,
-  real_T arg_medBuffSize)
+void ekf_mfClass::step(real_T arg_dists[4], real_T arg_deltat, real_T arg_imu,
+  uint8_T arg_nodeId, real_T arg_calibEnable, real_T arg_medBuffSize, real_T
+  arg_x_est[6], real_T arg_distMf[4])
 {
-  int32_T i;
   static const int8_T b[6] = { 0, 0, 0, 0, 0, 1 };
 
   static const int8_T c[6] = { 0, 0, 0, 0, 1, 0 };
 
   static const int8_T d[6] = { 0, 0, 0, 1, 0, 0 };
 
-  boolean_T exitg1;
+  int32_T i;
   int32_T i_0;
   int32_T i_1;
   real_T dis_pre_vect_idx_2;
@@ -235,12 +235,12 @@ void ekf_mfClass::step(const real_T arg_dists[4], real_T arg_deltat, real_T
     ekf_mf_B.A[5 + 6 * i_0] = b[i_0];
   }
 
-  // '<S2>:1:20' Q = [deltat^4/4*acc_xy^2           0                       0               deltat^3/2*acc_xy^2             0                       0;...
-  // '<S2>:1:21'     0                     deltat^4/4*acc_xy^2              0                       0               deltat^3/2*acc_xy^2             0;...
-  // '<S2>:1:22'     0                              0               deltat^4/4*acc_z^2              0                       0               deltat^3/2*acc_z^2;...
-  // '<S2>:1:23'     deltat^3/2*acc_xy^2            0                       0               deltat^3/2*acc_xy^2             0                       0;...
-  // '<S2>:1:24'     0                     deltat^3/2*acc_xy^2              0                       0               deltat^2*acc_xy^2               0;...
-  // '<S2>:1:25'     0                              0               deltat^3/2*acc_z^2              0                       0               deltat^2*acc_z^2];
+  // '<S2>:1:20' Q = [deltat^4/4*acc_xy^2           0                       0               deltat^3/2*acc_xy^2             0                       0;... 
+  // '<S2>:1:21'     0                     deltat^4/4*acc_xy^2              0                       0               deltat^3/2*acc_xy^2             0;... 
+  // '<S2>:1:22'     0                              0               deltat^4/4*acc_z^2              0                       0               deltat^3/2*acc_z^2;... 
+  // '<S2>:1:23'     deltat^3/2*acc_xy^2            0                       0               deltat^2*acc_xy^2             0                       0;... 
+  // '<S2>:1:24'     0                     deltat^3/2*acc_xy^2              0                       0               deltat^2*acc_xy^2               0;... 
+  // '<S2>:1:25'     0                              0               deltat^3/2*acc_z^2              0                       0               deltat^2*acc_z^2]; 
   // '<S2>:1:27' x_pre = A*x_est;
   // '<S2>:1:28' P_pre = A*P_est*A' + Q;
   for (i_0 = 0; i_0 < 6; i_0++) {
@@ -291,7 +291,7 @@ void ekf_mfClass::step(const real_T arg_dists[4], real_T arg_deltat, real_T
     ekf_mf_DW.acc_xy);
   ekf_mf_B.dv0[9] = 0.0;
   ekf_mf_B.dv0[15] = 0.0;
-  ekf_mf_B.dv0[21] = pow(arg_deltat, 3.0) / 2.0 * (ekf_mf_DW.acc_xy *
+  ekf_mf_B.dv0[21] = arg_deltat * arg_deltat * (ekf_mf_DW.acc_xy *
     ekf_mf_DW.acc_xy);
   ekf_mf_B.dv0[27] = 0.0;
   ekf_mf_B.dv0[33] = 0.0;
@@ -321,22 +321,13 @@ void ekf_mfClass::step(const real_T arg_dists[4], real_T arg_deltat, real_T
   // Attempt to make the covariance matrix symetric in hope that it would stay
   // positive definite.
   // P_pre = (P_pre + P_pre')*0.5;
-  // '<S2>:1:33' for i = 1:6
-  i = 0;
-  exitg1 = false;
-  while ((!exitg1) && (i < 6)) {
-    // '<S2>:1:34' if P_pre(i, i) <= 0
-    if (ekf_mf_B.P_pre[6 * i + i] <= 0.0) {
-      // '<S2>:1:35' P_pre = P_pre_1;
-      memcpy(&ekf_mf_B.P_pre[0], &ekf_mf_DW.P_pre_1[0], 36U * sizeof(real_T));
-      exitg1 = true;
-    } else {
-      i++;
-    }
-  }
-
-  // '<S2>:1:39' P_pre_1 = P_pre;
-  memcpy(&ekf_mf_DW.P_pre_1[0], &ekf_mf_B.P_pre[0], 36U * sizeof(real_T));
+  //  for i = 1:6
+  //      if P_pre(i, i) <= 0
+  //          P_pre = P_pre_1;
+  //          break;
+  //      end
+  //  end
+  //  P_pre_1 = P_pre;
   for (i_0 = 0; i_0 < 6; i_0++) {
     ekf_mf_B.x_pre[i_0] = 0.0;
     for (i = 0; i < 6; i++) {
@@ -499,9 +490,14 @@ void ekf_mfClass::step(const real_T arg_dists[4], real_T arg_deltat, real_T
     ekf_mf_B.I[i + 6 * i] = 1;
   }
 
+  // Outport: '<Root>/distMf'
   // Attempt to make the covariance matrix symetric in hope that it would stay
   // positive definite
   // P_upd = (P_upd + P_upd')*0.5;
+  arg_distMf[0] = ekf_mf_B.distsCalibed[0];
+  arg_distMf[1] = ekf_mf_B.distsCalibed[1];
+  arg_distMf[2] = ekf_mf_B.distsCalibed[2];
+  arg_distMf[3] = ekf_mf_B.distsCalibed[3];
   for (i = 0; i < 6; i++) {
     // Outport: '<Root>/x_est'
     arg_x_est[i] = ekf_mf_B.x_pre[i];
@@ -520,6 +516,7 @@ void ekf_mfClass::step(const real_T arg_dists[4], real_T arg_deltat, real_T
 
   // Update for UnitDelay: '<S1>/Unit Delay2' incorporates:
   //   MATLAB Function: '<S1>/EKF update'
+
   for (i_0 = 0; i_0 < 6; i_0++) {
     for (i = 0; i < 6; i++) {
       ekf_mf_DW.UnitDelay2_DSTATE[i_0 + 6 * i] = 0.0;
@@ -591,38 +588,36 @@ ekf_mfClass::ekf_mfClass()
 {
   P_ekf_mf_T ekf_mf_P_temp = {
     //  Variable: P_0
-
     //  Referenced by:
-
     //    '<S1>/P_pre_1'
-
     //    '<S1>/Unit Delay2'
+
     { 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5,
       0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
       0.0, 0.0, 0.0, 0.0, 0.0, 1.0 },
 
     //  Variable: ancs
-
     //  Referenced by: '<S1>/ancs'
+
     { -3.0, -3.0, -1.78, 3.0, -3.0, -0.1, 3.0, 3.0, -1.31, -3.0, 3.0, -0.21 },
 
     //  Mask Parameter: ekf_mf_x_hat0
-
     //  Referenced by: '<S1>/Unit Delay1'
+
     { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
     0.2,                               // Expression: 0.2
+                                       //  Referenced by: '<S1>/R'
 
-    //  Referenced by: '<S1>/R'
     5.0,                               // Expression: 5
+                                       //  Referenced by: '<S1>/acc_xy'
 
-    //  Referenced by: '<S1>/acc_xy'
     2.0,                               // Expression: 2
+                                       //  Referenced by: '<S1>/acc_z'
 
-    //  Referenced by: '<S1>/acc_z'
 
     //  Expression: [dists0 dists0 dists0 dists0 dists0 dists0 dists0 dists0 dists0]
-
     //  Referenced by: '<S1>/initDists'
+
     { 4.25779, 4.51474, 4.31816, 4.33893, 4.25779, 4.51474, 4.31816, 4.33893,
       4.25779, 4.51474, 4.31816, 4.33893, 4.25779, 4.51474, 4.31816, 4.33893,
       4.25779, 4.51474, 4.31816, 4.33893, 4.25779, 4.51474, 4.31816, 4.33893,
