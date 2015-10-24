@@ -1,16 +1,14 @@
 <?xml version="1.0"?>
 <launch>
 
-<!--rosparam param="/uwb_localization_node0/ancsPos"> [-3.0, -3.0, -1.71, 3.0, -3.0, -0.11, 3.0, 3.0, -1.31, -3.0, 3.0, -0.21]</rosparam-->
-<!--rosparam param="/uwb_localization_node0/ancsId"> [101, 102, 105, 106]</rosparam-->
+<rosparam param="/uwb_localization_node0/ancsPos"> [-3.0, -3.0, -1.71, 3.0, -3.0, -0.11, 3.0, 3.0, -1.31, -3.0, 3.0, -0.21]</rosparam>
+<rosparam param="/uwb_localization_node0/ancsId"> [101, 102, 105, 106]</rosparam>
 
  <!-- rcmEkfLocalization node -->
   <node respawn="true" pkg="uwb_localization" type="uwb_localization_node" name="uwb_localization_node0" output="screen">
-    <param param="ancsPos"> [-3.0, -3.0, -1.71, 3.0, -3.0, -0.11, 3.0, 3.0, -1.31, -3.0, 3.0, -0.21]/>
-    <rosparam param="/ancsId"> [101, 102, 105, 106]/>
     <param name="rcmSerialPort" type="string" value="/dev/ttyACM0" />
-	<param name="rcmLocalizationRate" type="string" value="20"/>
-	<param name="enableCalib" type="double" value="1.0"/>
+	<param name="rcmLocalizationRate" type="string" value="10"/>
+	<param name="enableCalib" type="bool" value="true"/>
 	<param name="medianFilterSize" type="double" value="5.0"/>
 	<param name="viconSerialPort" type="string" value="/dev/ttyUSB0"/>
 	<param name="viconAsyncMode" type="bool" value="false"/>

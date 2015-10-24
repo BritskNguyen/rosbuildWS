@@ -1,4 +1,4 @@
-﻿//_____________________________________________________________________________
+//_____________________________________________________________________________
 //
 // Copyright 2011-2015 Time Domain Corporation
 //
@@ -55,7 +55,8 @@
 
 //ekf ert generated code
 #include "ekf_mf.h"
-#include "trilat.h"
+//#include "trilat.h"
+#include "trilatCalib.h"
 
 //log file
 #include <fstream>
@@ -104,6 +105,9 @@ uint8_t		msgFlag = DOWN;
 uint8_t		viconUpdateFlag = DOWN;
 uint8_t		headerIndex = 0xFF;
 float viconX , viconY, viconZ, viconXd, viconYd, viconZd, viconRoll, viconPitch, viconYaw;
+#define     LOSS_MEMORY_LENGTH  20
+uint8_t     lossMarkBuff[LOSS_MEMORY_LENGTH];
+uint8_t     lossMarkBuffIndex = 0;
 
 void signal_handler_IO(int status)
 {
@@ -144,7 +148,8 @@ static double x_est[6];
 
 
 //initial conditions for the trilaterator
-static trilatModelClass trilat_Obj;
+//static trilatModelClass trilat_Obj;
+static trilatCalibClass trilatCalib_Obj;
 static double ancsTranspose[12] =
 {
     -3.0, -3.0, -1.71,
@@ -226,7 +231,7 @@ int main(int argc, char *argv[])
         printf(KBLU"a%d[%4.2f, %4.2f, %4.2f]\n\t"RESET, ancsId[0], ancsPos[0], ancsPos[1], ancsPos[2]);
         printf(KBLU"a%d[%4.2f, %4.2f, %4.2f]\n\t"RESET, ancsId[1], ancsPos[3], ancsPos[4], ancsPos[5]);
         printf(KBLU"a%d[%4.2f, %4.2f, %4.2f]\n\t"RESET, ancsId[2], ancsPos[6], ancsPos[7], ancsPos[8]);
-        printf(KBLU"a%d[%4.2f, %4.2f, %4.2f]\n\t"RESET, ancsId[3], ancsPos[9], ancsPos[10], ancsPos[11]);
+        printf(KBLU"a%d[%4.2f, %4.2f, %4.2f]\n"RESET, ancsId[3], ancsPos[9], ancsPos[10], ancsPos[11]);
         for(int i =0; i < 12; i++)
             ancsTranspose[i] = ancsPos[i];
         for(int i = 0; i < 3; i++)
@@ -256,14 +261,17 @@ int main(int argc, char *argv[])
     else
         printf(KYEL "Couldn't retrieve param 'rcmLocalizationRate', applying default value %sHz\n"RESET, rcmEkfRate.data());
 
-    double enableCalib = 0;
+    bool enableCalib = true;
     if(uwbViconNodeHandle.getParam("enableCalib", enableCalib))
-        printf(KBLU"Retrieved value %f for param 'enableCalib'!\n"RESET, enableCalib);
+        if(enableCalib)
+            printf(KBLU"Retrieved value 'true' for param 'enableCalib'!\n"RESET);
+        else
+            printf(KBLU"Retrieved value 'fasle' for param 'enableCalib'!\n"RESET);
     else
     {
         //serialPortName = string(DFLT_PORT);
-        printf(KYEL "Couldn't retrieve param 'enableCalib', using default mode without caliberation!\n"RESET);
-        enableCalib = 0.0;
+        printf(KYEL "Couldn't retrieve param 'enableCalib', using default mode with caliberation!\n"RESET);
+        enableCalib = true;
     }
 
     double medianFilterSize = 5.0;
@@ -476,8 +484,8 @@ int main(int argc, char *argv[])
 //---------------------------------------------P410 serial interface initialization done-------------------------------
 
     //initialize trilateration object
-    trilat_Obj.initialize();
-
+    //trilat_Obj.initialize();
+    trilatCalib_Obj.initialize();
     //Reset the intial position
     for (int i = 0; i < 3; i++)
     {
@@ -559,10 +567,10 @@ int main(int argc, char *argv[])
         dists[j] /= TRILAT_TIMES;
         tempDists[j] = dists[j];
     }
-    printf("average ranges , d1 = %f; d2 = %f; d3 = %f; d4 = %f\n", dists[0], dists[1], dists[2], dists[3]);
+    printf("average ranges: d1 = %f; d2 = %f; d3 = %f; d4 = %f\n", dists[0], dists[1], dists[2], dists[3]);
 
     //trilatering
-    trilat_Obj.step(ancs, dists, initialPos);
+    trilatCalib_Obj.step(ancsTranspose, dists, enableCalib, initialPos);
 
     printf(" init pos: x = %f, y = %f, z = %f\n", initialPos[0], initialPos[1], initialPos[2]);
 
@@ -577,7 +585,7 @@ int main(int argc, char *argv[])
         ekf_Obj.ekf_mf_P.ekf_mf_x_hat0[i] = initialPos[i];
     ekf_Obj.ekf_mf_P.R_InitialValue = 0.04;
     ekf_Obj.ekf_mf_P.acc_xy_InitialValue = 5.0;
-    ekf_Obj.ekf_mf_P.acc_z_InitialValue = 2.0;
+    ekf_Obj.ekf_mf_P.acc_z_InitialValue = 1.0;
     for (int i = 0; i < 5; i++)
     {
         ekf_Obj.ekf_mf_P.initDists_InitialValue[i * 4] = dists[0];
@@ -623,28 +631,29 @@ int main(int argc, char *argv[])
 
     nodeId = 1;
     bool lastRangingSuccesful = true;
-    int loopCount = 1;
-    int faultyRangingCount = 0;
+//    int loopCount = 1;
+//    int faultyRangingCount = 0;
 
+    int loss = 0;
     // enter loop to a ranging a node and broadcasting the resulting range
     nodeRate = atoi(rcmEkfRate.data());
     ros::Rate rate(nodeRate);
     while(ros::ok())
     {
-        if (loopCount > 200)
-        {
-            loopCount = 0;
-            faultyRangingCount = 0;
-            //lastRangingSuccesful = true;
-        }
-        else
-            loopCount++;
+//        if (loopCount > 200)
+//        {
+//            loopCount = 0;
+//            faultyRangingCount = 0;
+//            //lastRangingSuccesful = true;
+//        }
+//        else
+//            loopCount++;
 
         //reset timer if last ranging was successful
         if (lastRangingSuccesful)
             timeStart = ros::Time::now();
-        else
-            faultyRangingCount++;
+//        else
+//            faultyRangingCount++;
 
         switch (nodeId)
         {
@@ -920,10 +929,18 @@ int main(int argc, char *argv[])
 
         //get the range to an anchor
         rcmRangeTo(destNodeId, RCM_ANTENNAMODE_TXA_RXA, 0, NULL, &rangeInfo, &dataInfo, &scanInfo, &fullScanInfo);
-        //rate.sleep();
         //if measurement succeeds proceed to the ekf, otherwise move to the next anchor
         if ((rangeInfo.rangeMeasurementType & RCM_RANGE_TYPE_PRECISION) && rangeInfo.precisionRangeMm < 12000)
         {
+            rate.sleep();
+            lossMarkBuff[lossMarkBuffIndex] = DOWN;
+            if(lossMarkBuffIndex++ == LOSS_MEMORY_LENGTH)
+                lossMarkBuffIndex = 0;
+            loss = 0;
+            for(int i = 0; i < LOSS_MEMORY_LENGTH; i++)
+                if(lossMarkBuff[i] == UP)
+                    loss += 1;
+
             //calculate deltat
             timeEnd = ros::Time::now();
             deltat = (ros::Time::now() - timeStart).toSec();
@@ -933,12 +950,12 @@ int main(int argc, char *argv[])
             //step the model
             ekf_Obj.step(dists, deltat, 0.0, nodeId, enableCalib, medianFilterSize, x_est, tempDists);
             //trilaterating to compare
-            trilat_Obj.step(ancs, tempDists, trilatPos);
+            trilatCalib_Obj.step(ancsTranspose, dists, enableCalib, trilatPos);
 
             //Print and log state values
             if (lastRangingSuccesful)
             {
-                printf("i=[i %d]; d=[d %6.4f]; x=[x %6.4f]; y=[y %6.4f]; z=[z %6.4f]; p1=[p1 %6.4f]; p2=[p2 %6.4f]; p3=[p3 %6.4f]; dt=[dt %6.4f]; loss=[loss %4.2f];\n",
+                printf("i=[i %d]; d=[d %6.4f]; x=[x %6.4f]; y=[y %6.4f]; z=[z %6.4f]; p1=[p1 %6.4f]; p2=[p2 %6.4f]; p3=[p3 %6.4f]; dt=[dt %6.4f]; loss=[loss %d];\n",
                        nodeId,
                        dists[nodeId - 1],
                         x_est[0], x_est[1], x_est[2],
@@ -946,12 +963,12 @@ int main(int argc, char *argv[])
                         ekf_Obj.ekf_mf_B.P_pre[7],
                         ekf_Obj.ekf_mf_B.P_pre[14],
                         deltat,
-                        faultyRangingCount / (double)loopCount * 100
+                        loss//faultyRangingCount / (double)loopCount * 100
                         );
                 printf("X=[X %6.4f]; Y=[Y %6.4f]; Z=[Z %6.4f]\n", trilatPos[0], trilatPos[1], trilatPos[2]);
             }
             else
-                printf("\nI=[I %d]; D=[D %6.4f]; X=[X %6.4f]; Y=[Y %6.4f]; Z=[Z %6.4f]; P1=[P1 %6.4f]; P2=[P2 %6.4f]; P3=[P3 %6.4f]; DT=[DT %6.4f]; LOSS=[LOSS %4.2f];\n\n",
+                printf("\nI=[I %d]; D=[D %6.4f]; X=[X %6.4f]; Y=[Y %6.4f]; Z=[Z %6.4f]; P1=[P1 %6.4f]; P2=[P2 %6.4f]; P3=[P3 %6.4f]; DT=[DT %6.4f]; LOSS=[LOSS %d];\n\n",
                        nodeId,
                        dists[nodeId - 1],
                         x_est[0], x_est[1], x_est[2],
@@ -959,7 +976,7 @@ int main(int argc, char *argv[])
                         ekf_Obj.ekf_mf_B.P_pre[7],
                         ekf_Obj.ekf_mf_B.P_pre[14],
                         deltat,
-                        faultyRangingCount / (double)loopCount * 100
+                        loss//faultyRangingCount / (double)loopCount * 100
                         );
 
             //Prepare the frame to send to FCC
@@ -1000,13 +1017,21 @@ int main(int argc, char *argv[])
             fout << "p1=[p1 " << ekf_Obj.ekf_mf_B.P_pre[0] << "];p2=[p2 "<<ekf_Obj.ekf_mf_B.P_pre[7]<<"];p3=[p3 "<<ekf_Obj.ekf_mf_B.P_pre[14]<<"];";
             fout << "X=[X " << viconX << "];Y=[Y " << viconY << "];Z=[Z " << viconZ << "];" << "Xd=[Xd " << viconXd << "];Yd=[Yd " << viconYd << "];Zd=[Zd " << viconZd << "];";
             fout << "Xtr=[Xtr " << trilatPos[0] << "];Ytr=[Ytr " << trilatPos[1] << "];Ztr=[Ztr " << trilatPos[2] << "];";
-            fout << "dt=[dt "<<deltat<<"];loss=[loss "<<faultyRangingCount / (double)loopCount * 100<<"];" << endl;
+            fout << "dt=[dt "<<deltat<<"];loss=[loss "<< loss /*faultyRangingCount / (double)loopCount * 100*/<<"];" << endl;
 
             lastRangingSuccesful = true;
         }
         else
+        {
+            lossMarkBuff[lossMarkBuffIndex] = UP;
+            if(lossMarkBuffIndex++ == LOSS_MEMORY_LENGTH)
+                lossMarkBuffIndex = 0;
+
             //Raise this flag to not to reset timer on next loop
             lastRangingSuccesful = false;
+            //account for the loss;
+            loss = (loss * 0.2 + 1/20);
+        }
 
         nodeId++;
         if (nodeId > 4)

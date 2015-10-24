@@ -26,6 +26,7 @@ SET(UWB_SRCS
 	src/rcmIf.c
 	src/ekf_mf.cpp
 	src/trilat.cpp
+    src/trilatCalib.cpp
 )
 
 #common commands for building c++ executables and libraries
