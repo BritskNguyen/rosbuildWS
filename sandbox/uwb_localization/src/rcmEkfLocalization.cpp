@@ -54,9 +54,10 @@
 #include "rcm.h"
 
 //ekf ert generated code
-#include "ekf_mf.h"
+//#include "ekf_mf.h"
 //#include "trilat.h"
 #include "trilatCalib.h"
+#include "ekf_iod.h"
 
 //log file
 #include <fstream>
@@ -120,7 +121,7 @@ void signal_handler_IO(int status)
 //_____________________________________________________________________________
 
 //initial conditions for the ekf
-static ekf_mfClass ekf_Obj;
+static ekfIodClass ekf_Obj;
 static double ancs[12] =
 {
     -3.0, 3.0, 3.0, -3.0,
@@ -140,6 +141,7 @@ static double ancs[12] =
 static double R = 0.2;
 //inputs for the ekf
 static double dists[4] = { 0, 0, 0, 0 };
+boolean_T outlier = false;
 static double deltat = 0;
 //static double imus = 0;
 static unsigned int nodeId = 1;		//WARNING: MATLAB GENERATED FUNCTION USES INDEX 1 FOR 1ST ELEMENT
@@ -579,51 +581,51 @@ int main(int argc, char *argv[])
     //initialPos[2] = -0.8;
 
     //Assign initial positions and anchor locations to the ekf
-    for (int i = 0; i < 12; i++)
-        ekf_Obj.ekf_mf_P.ancs[i] = ancsTranspose[i];
+//    for (int i = 0; i < 12; i++)
+//        ekf_Obj.ekf_mf_P.ancs[i] = ancsTranspose[i];
     for (int i = 0; i < 3; i++)
-        ekf_Obj.ekf_mf_P.ekf_mf_x_hat0[i] = initialPos[i];
-    ekf_Obj.ekf_mf_P.R_InitialValue = 0.04;
-    ekf_Obj.ekf_mf_P.acc_xy_InitialValue = 5.0;
-    ekf_Obj.ekf_mf_P.acc_z_InitialValue = 1.0;
-    for (int i = 0; i < 5; i++)
-    {
-        ekf_Obj.ekf_mf_P.initDists_InitialValue[i * 4] = dists[0];
-        ekf_Obj.ekf_mf_P.initDists_InitialValue[i * 4 + 1] = dists[1];
-        ekf_Obj.ekf_mf_P.initDists_InitialValue[i * 4 + 2] = dists[2];
-        ekf_Obj.ekf_mf_P.initDists_InitialValue[i * 4 + 3] = dists[3];
-    }
+        ekf_Obj.ekf_iod_P.ekf_iod_x_hat0[i] = initialPos[i];
+    ekf_Obj.ekf_iod_P.R_InitialValue = 0.04;
+    ekf_Obj.ekf_iod_P.acc_xy_InitialValue = 5.0;
+    ekf_Obj.ekf_iod_P.acc_z_InitialValue = 1.0;
+//    for (int i = 0; i < 5; i++)
+//    {
+//        ekf_Obj.ekf_iod_P.initDists_InitialValue[i * 4] = dists[0];
+//        ekf_Obj.ekf_iod_P.initDists_InitialValue[i * 4 + 1] = dists[1];
+//        ekf_Obj.ekf_iod_P.initDists_InitialValue[i * 4 + 2] = dists[2];
+//        ekf_Obj.ekf_iod_P.initDists_InitialValue[i * 4 + 3] = dists[3];
+//    }
 
     //initialize ekf object
     ekf_Obj.initialize();
 
-    fout << "i=" << 1 << ";d=" << dists[0] << ";df=" << tempDists[0] << ";x=" << initialPos[0] << ";y=" << initialPos[1] << ";z=" << initialPos[2] << ";";
+    fout << "i=" << 1 << ";d=" << dists[0] << ";o=" << 0 << ";df=" << tempDists[0] << ";x=" << initialPos[0] << ";y=" << initialPos[1] << ";z=" << initialPos[2] << ";";
     fout << "xd=" << 0 << ";yd=" << 0 << ";zd=" << 0 << ";";
-    fout << "p1=" << ekf_Obj.ekf_mf_P.P_0[0] << ";p2=" << ekf_Obj.ekf_mf_P.P_0[7] << ";p3=" << ekf_Obj.ekf_mf_P.P_0[14] << ";";
+    fout << "p1=" << ekf_Obj.ekf_iod_P.P_0[0] << ";p2=" << ekf_Obj.ekf_iod_P.P_0[7] << ";p3=" << ekf_Obj.ekf_iod_P.P_0[14] << ";";
     fout << "X=" << initialPos[0] << ";Y=" << initialPos[1] << ";Z=" << initialPos[2] << ";";
     fout << "Xd=" << 0 << ";Yd=" << 0 << ";Zd=" << 0 << ";";
     fout << "Xtr=" << initialPos[0] << ";Ytr=" << initialPos[1] << ";Ztr=" << initialPos[2] << ";";
     fout << "dt=" << deltat << ";loss=" << 0 << ";" << endl;
 
-    fout << "i=[i " << 2 << "];d=[d " << dists[1] << "];df=[df " << tempDists[1] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
+    fout << "i=[i " << 2 << "];d=[d " << dists[1] << "];o=[o " << 0 << "];df=[df " << tempDists[1] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
     fout << "xd=[xd " << 0 << "];yd=[yd " << 0 << "];zd=[zd " << 0 << "];";
-    fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "];p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "];p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "];";
+    fout << "p1=[p1 " << ekf_Obj.ekf_iod_P.P_0[0] << "];p2=[p2 " << ekf_Obj.ekf_iod_P.P_0[7] << "];p3=[p3 " << ekf_Obj.ekf_iod_P.P_0[14] << "];";
     fout << "X=[X " << initialPos[0] << "];Y=[Y " << initialPos[1] << "];Z=[Z " << initialPos[2] << "];";
     fout << "Xd=[Xd " << 0 << "];Yd=[Yd " << 0 << "];Zd=[Zd " << 0 << "];";
     fout << "Xtr=[Xtr " << initialPos[0] << "];Ytr=[Ytr " << initialPos[1] << "];Ztr=[Ztr " << initialPos[2] << "];";
     fout << "dt=[dt " << deltat << "];loss=[loss " << 0 << "];" << endl;
 
-    fout << "i=[i " << 3 << "];d=[d " << dists[2] << "];df=[df " << tempDists[2] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
+    fout << "i=[i " << 3 << "];d=[d " << dists[2] << "];o=[o " << 0 << "];df=[df " << tempDists[2] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
     fout << "xd=[xd " << 0 << "];yd=[yd " << 0 << "];zd=[zd " << 0 << "];";
-    fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "];p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "];p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "];";
+    fout << "p1=[p1 " << ekf_Obj.ekf_iod_P.P_0[0] << "];p2=[p2 " << ekf_Obj.ekf_iod_P.P_0[7] << "];p3=[p3 " << ekf_Obj.ekf_iod_P.P_0[14] << "];";
     fout << "X=[X " << initialPos[0] << "];Y=[Y " << initialPos[1] << "];Z=[Z " << initialPos[2] << "];";
     fout << "Xd=[Xd " << 0 << "];Yd=[Yd " << 0 << "];Zd=[Zd " << 0 << "];";
     fout << "Xtr=[Xtr " << initialPos[0] << "];Ytr=[Ytr " << initialPos[1] << "];Ztr=[Ztr " << initialPos[2] << "];";
     fout << "dt=[dt " << deltat << "];loss=[loss " << 0 << "];" << endl;
 
-    fout << "i=[i " << 4 << "];d=[d " << dists[3] << "];df=[df " << tempDists[3] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
+    fout << "i=[i " << 4 << "];d=[d " << dists[3] << "];o=[o " << 0 << "];df=[df " << tempDists[3] << "];x=[x " << initialPos[0] << "];y=[y " << initialPos[1] << "];z=[z " << initialPos[2] << "];";
     fout << "xd=[xd " << 0 << "];yd=[yd " << 0 << "];zd=[zd " << 0 << "];";
-    fout << "p1=[p1 " << ekf_Obj.ekf_mf_P.P_0[0] << "];p2=[p2 " << ekf_Obj.ekf_mf_P.P_0[7] << "];p3=[p3 " << ekf_Obj.ekf_mf_P.P_0[14] << "];";
+    fout << "p1=[p1 " << ekf_Obj.ekf_iod_P.P_0[0] << "];p2=[p2 " << ekf_Obj.ekf_iod_P.P_0[7] << "];p3=[p3 " << ekf_Obj.ekf_iod_P.P_0[14] << "];";
     fout << "X=[X " << initialPos[0] << "];Y=[Y " << initialPos[1] << "];Z=[Z " << initialPos[2] << "];";
     fout << "Xd=[Xd " << 0 << "];Yd=[Yd " << 0 << "];Zd=[Zd " << 0 << "];";
     fout << "Xtr=[Xtr " << initialPos[0] << "];Ytr=[Ytr " << initialPos[1] << "];Ztr=[Ztr " << initialPos[2] << "];";
@@ -947,8 +949,13 @@ int main(int argc, char *argv[])
 
             dists[nodeId - 1] = rangeInfo.precisionRangeMm / 1000.0; //Range measurements are in mm
 
+            boolean_T outlier = false;
             //step the model
-            ekf_Obj.step(dists, deltat, 0.0, nodeId, enableCalib, medianFilterSize, x_est, tempDists);
+            ekf_Obj.step(dists, deltat, 0.0, nodeId, enableCalib, ancsTranspose, x_est, &outlier);
+            if(outlier)
+                tempDists[nodeId - 1] = 0;
+            else
+                tempDists[nodeId - 1] = dists[nodeId - 1];
             //trilaterating to compare
             trilatCalib_Obj.step(ancsTranspose, dists, enableCalib, trilatPos);
 
@@ -959,9 +966,9 @@ int main(int argc, char *argv[])
                        nodeId,
                        dists[nodeId - 1],
                         x_est[0], x_est[1], x_est[2],
-                        ekf_Obj.ekf_mf_B.P_pre[0],
-                        ekf_Obj.ekf_mf_B.P_pre[7],
-                        ekf_Obj.ekf_mf_B.P_pre[14],
+                        ekf_Obj.ekf_iod_B.P_pre[0],
+                        ekf_Obj.ekf_iod_B.P_pre[7],
+                        ekf_Obj.ekf_iod_B.P_pre[14],
                         deltat,
                         loss//faultyRangingCount / (double)loopCount * 100
                         );
@@ -972,9 +979,9 @@ int main(int argc, char *argv[])
                        nodeId,
                        dists[nodeId - 1],
                         x_est[0], x_est[1], x_est[2],
-                        ekf_Obj.ekf_mf_B.P_pre[0],
-                        ekf_Obj.ekf_mf_B.P_pre[7],
-                        ekf_Obj.ekf_mf_B.P_pre[14],
+                        ekf_Obj.ekf_iod_B.P_pre[0],
+                        ekf_Obj.ekf_iod_B.P_pre[7],
+                        ekf_Obj.ekf_iod_B.P_pre[14],
                         deltat,
                         loss//faultyRangingCount / (double)loopCount * 100
                         );
@@ -990,11 +997,11 @@ int main(int argc, char *argv[])
             U2F_DZ      = (float)x_est[5];
 
             //Find the maximum covariance of postions
-            double maxP = ekf_Obj.ekf_mf_B.P_pre[0];
-            if(maxP < ekf_Obj.ekf_mf_B.P_pre[1])
-                maxP = ekf_Obj.ekf_mf_B.P_pre[1];
-            if(maxP < ekf_Obj.ekf_mf_B.P_pre[2])
-                maxP = ekf_Obj.ekf_mf_B.P_pre[2];
+            double maxP = ekf_Obj.ekf_iod_B.P_pre[0];
+            if(maxP < ekf_Obj.ekf_iod_B.P_pre[1])
+                maxP = ekf_Obj.ekf_iod_B.P_pre[1];
+            if(maxP < ekf_Obj.ekf_iod_B.P_pre[2])
+                maxP = ekf_Obj.ekf_iod_B.P_pre[2];
 
             uint16_T ambiRadius = (uint16_T)sqrt(2*maxP);;
 
@@ -1012,9 +1019,12 @@ int main(int argc, char *argv[])
             U2F_CS1 = CSA;
             U2F_CS2 = CSB;
 
-            fout << "i=[i " << nodeId << "];d=[d " << dists[nodeId - 1] << "];df=[df " << tempDists[nodeId - 1]<< "];x=[x " << x_est[0] << "];y=[y " << x_est[1] << "];z=[z " << x_est[2] << "];";
+            int outlierFlag = 0;
+            if(outlier)
+                outlierFlag = 1;
+            fout << "i=[i " << nodeId << "];d=[d " << dists[nodeId - 1] << "];o=[o " << outlierFlag <<"];df=[df " << dists[nodeId - 1]<< "];x=[x " << x_est[0] << "];y=[y " << x_est[1] << "];z=[z " << x_est[2] << "];";
             fout << "xd=[xd " << x_est[3] << "];yd=[yd " << x_est[4] << "];zd=[zd " << x_est[5] << "];";
-            fout << "p1=[p1 " << ekf_Obj.ekf_mf_B.P_pre[0] << "];p2=[p2 "<<ekf_Obj.ekf_mf_B.P_pre[7]<<"];p3=[p3 "<<ekf_Obj.ekf_mf_B.P_pre[14]<<"];";
+            fout << "p1=[p1 " << ekf_Obj.ekf_iod_B.P_pre[0] << "];p2=[p2 "<<ekf_Obj.ekf_iod_B.P_pre[7]<<"];p3=[p3 "<<ekf_Obj.ekf_iod_B.P_pre[14]<<"];";
             fout << "X=[X " << viconX << "];Y=[Y " << viconY << "];Z=[Z " << viconZ << "];" << "Xd=[Xd " << viconXd << "];Yd=[Yd " << viconYd << "];Zd=[Zd " << viconZd << "];";
             fout << "Xtr=[Xtr " << trilatPos[0] << "];Ytr=[Ytr " << trilatPos[1] << "];Ztr=[Ztr " << trilatPos[2] << "];";
             fout << "dt=[dt "<<deltat<<"];loss=[loss "<< loss /*faultyRangingCount / (double)loopCount * 100*/<<"];" << endl;
