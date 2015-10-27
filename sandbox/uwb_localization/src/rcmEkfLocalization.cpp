@@ -1,27 +1,5 @@
 //_____________________________________________________________________________
 //
-// Copyright 2011-2015 Time Domain Corporation
-//
-//
-// rcmSampleApp.c
-//
-//   Sample code showing how to interface to P400 RCM module.
-//
-//   This code uses the functions in rcm.c to:
-//      - make sure the RCM is awake and in the correct mode
-//      - get the configuration from the RCM and print it
-//      - get the status/info from the RCM and print it
-//      - range to another RCM node
-//      - broadcast that range in a data packet
-//
-// This sample can communicate with the RCM over Ethernet, the 3.3V serial port,
-// or the USB interface (which acts like a serial port).
-//
-//_____________________________________________________________________________
-
-
-//_____________________________________________________________________________
-//
 // #includes
 //_____________________________________________________________________________
 
@@ -52,19 +30,12 @@
 #include <string.h>
 #include "rcmIf.h"
 #include "rcm.h"
-
-//ekf ert generated code
-//#include "ekf_mf.h"
-//#include "trilat.h"
-#include "trilatCalib.h"
-#include "ekf_iod.h"
-
-//log file
+//For log file use
 #include <fstream>
 
 //_____________________________________________________________________________
 //
-// #defines
+// Debugging utilities
 //_____________________________________________________________________________
 
 #define KNRM  "\x1B[0m"
@@ -77,48 +48,19 @@
 #define KWHT  "\x1B[37m"
 #define RESET "\033[0m"
 
-//#define DEFAULT_DEST_NODE_ID    301
-#define     DFLT_PORT           "/dev/ttyUSB0"
 #define     DFLT_NODE_RATE      "10"
+
+//_____________________________________________________________________________
+//
+// Trilateration and ekf particulars
+//_____________________________________________________________________________
+//ekf ert generated code
+#include "trilatCalib.h"
+#include "ekf_iod.h"
+
+//initial conditions for the trilaterator
+static trilatCalibClass trilatCalib_Obj;
 #define     TRILAT_TIMES        20
-
-//_____________________________________________________________________________
-//
-// Vicon defines
-//_____________________________________________________________________________
-#define BAUDRATE		57600
-#define BAUD_MACRO		B57600
-#define DFLT_PORT	"/dev/ttyUSB0"
-#define RCV_THRESHOLD	40					//Receive frame's length
-#define FPS				40					//Frames per second
-#define	UP				0xFF
-#define DOWN			0x00
-#define HEADER_NAN		0x7FAAAAAA
-
-uint8_t		frame32[RCV_THRESHOLD];
-uint8_t		rcvdFrame[RCV_THRESHOLD];
-uint8_t		backupFrame[RCV_THRESHOLD];
-uint8_t		flagIncompleteFrame = 0;
-int			rcvdBytesCount = 0;
-uint8_t		backupRcvBytesCount = 0;
-uint8_t		misAlgnFlag = DOWN;
-uint8_t		msgFlag = DOWN;
-uint8_t		viconUpdateFlag = DOWN;
-uint8_t		headerIndex = 0xFF;
-float viconX , viconY, viconZ, viconXd, viconYd, viconZd, viconRoll, viconPitch, viconYaw;
-#define     LOSS_MEMORY_LENGTH  20
-uint8_t     lossMarkBuff[LOSS_MEMORY_LENGTH];
-uint8_t     lossMarkBuffIndex = 0;
-
-void signal_handler_IO(int status)
-{
-    msgFlag = UP;
-}
-
-//_____________________________________________________________________________
-//
-// static data
-//_____________________________________________________________________________
 
 //initial conditions for the ekf
 static ekfIodClass ekf_Obj;
@@ -148,10 +90,6 @@ static unsigned int nodeId = 1;		//WARNING: MATLAB GENERATED FUNCTION USES INDEX
 //output of the ekf
 static double x_est[6];
 
-
-//initial conditions for the trilaterator
-//static trilatModelClass trilat_Obj;
-static trilatCalibClass trilatCalib_Obj;
 static double ancsTranspose[12] =
 {
     -3.0, -3.0, -1.71,
@@ -173,28 +111,46 @@ static double tempDists[4] = { 0, 0, 0, 0 };//{ 7.51, 13.03, 12.69, 6.90 };
 static double trilatPos[3] = { 0, 0, 0 };
 static double initialPos[3];
 
-static uint8_T uwb2FccBuff[32];
-#define U2F_HEADER1     (uint8_T)0x46;  //'F'
-#define U2F_HEADER2     (uint8_T)0x43;  //'C'
-#define U2F_ID          (*(uint8_T *)(uwb2FccBuff + 2))
-#define U2F_LENGTH      (*(uint8_T *)(uwb2FccBuff + 3))
-#define U2F_X           (*(uint8_T *)(uwb2FccBuff + 4))
-#define U2F_Y           (*(uint8_T *)(uwb2FccBuff + 8))
-#define U2F_Z           (*(uint8_T *)(uwb2FccBuff + 12))
-#define U2F_DX          (*(uint8_T *)(uwb2FccBuff + 16))
-#define U2F_DY          (*(uint8_T *)(uwb2FccBuff + 20))
-#define U2F_DZ          (*(uint8_T *)(uwb2FccBuff + 24))
-#define U2F_REV1        (*(uint8_T *)(uwb2FccBuff + 28))
-#define U2F_REV2        (*(uint8_T *)(uwb2FccBuff + 29))
-#define U2F_CS1         (*(uint8_T *)(uwb2FccBuff + 30))
-#define U2F_CS2         (*(uint8_T *)(uwb2FccBuff + 31))
-#define ID_TO_RES2_LENGTH   27
+//_____________________________________________________________________________
+//
+// P410 Serial Communications
+//_____________________________________________________________________________
+
+#define     DFLT_PORT           "/dev/ttyUSB0"
+#define     LOSS_MEMORY_LENGTH  20
+uint8_t     lossMarkBuff[LOSS_MEMORY_LENGTH];
+uint8_t     lossMarkBuffIndex = 0;
+uint8_t     loss = 0;
 
 //_____________________________________________________________________________
 //
-// local function prototypes
+// Vicon defines
 //_____________________________________________________________________________
+#define BAUDRATE		57600
+#define BAUD_MACRO		B57600
+#define DFLT_PORT       "/dev/ttyUSB0"
+#define RCV_THRESHOLD	40					//Receive frame's length
+//#define FPS				40					//Frames per second
+#define	UP				0xFF
+#define DOWN			0x00
+#define HEADER_NAN		0x7FAAAAAA
 
+//uint8_t		frame32[RCV_THRESHOLD];
+uint8_t		rcvdFrame[RCV_THRESHOLD];
+uint8_t		backupFrame[RCV_THRESHOLD];
+//uint8_t		flagIncompleteFrame = 0;
+int			rcvdBytesCount = 0;
+//uint8_t		backupRcvBytesCount = 0;
+//uint8_t		misAlgnFlag = DOWN;
+uint8_t		msgFlag = DOWN;
+uint8_t		viconUpdateFlag = DOWN;
+uint8_t		headerIndex = 0xFF;
+float viconX , viconY, viconZ, viconXd, viconYd, viconZd, viconRoll, viconPitch, viconYaw;
+
+void signal_handler_IO(int status)
+{
+    msgFlag = UP;
+}
 
 //_____________________________________________________________________________
 //
@@ -636,7 +592,6 @@ int main(int argc, char *argv[])
 //    int loopCount = 1;
 //    int faultyRangingCount = 0;
 
-    int loss = 0;
     // enter loop to a ranging a node and broadcasting the resulting range
     nodeRate = atoi(rcmEkfRate.data());
     ros::Rate rate(nodeRate);
@@ -986,43 +941,40 @@ int main(int argc, char *argv[])
                         loss//faultyRangingCount / (double)loopCount * 100
                         );
 
-            //Prepare the frame to send to FCC
-            U2F_ID      +=U2F_ID;
-            U2F_LENGTH  = 26;
-            U2F_X       = (float)x_est[0];
-            U2F_Y       = (float)x_est[1];
-            U2F_Z       = (float)x_est[2];
-            U2F_DX      = (float)x_est[3];
-            U2F_DY      = (float)x_est[4];
-            U2F_DZ      = (float)x_est[5];
+//            //Prepare the frame to send to FCC
+//            U2F_ID      +=U2F_ID;
+//            U2F_LENGTH  = 26;
+//            U2F_X       = (float)x_est[0];
+//            U2F_Y       = (float)x_est[1];
+//            U2F_Z       = (float)x_est[2];
+//            U2F_DX      = (float)x_est[3];
+//            U2F_DY      = (float)x_est[4];
+//            U2F_DZ      = (float)x_est[5];
 
-            //Find the maximum covariance of postions
-            double maxP = ekf_Obj.ekf_iod_B.P_pre[0];
-            if(maxP < ekf_Obj.ekf_iod_B.P_pre[1])
-                maxP = ekf_Obj.ekf_iod_B.P_pre[1];
-            if(maxP < ekf_Obj.ekf_iod_B.P_pre[2])
-                maxP = ekf_Obj.ekf_iod_B.P_pre[2];
+//            //Find the maximum covariance of postions
+//            double maxP = ekf_Obj.ekf_iod_B.P_pre[0];
+//            if(maxP < ekf_Obj.ekf_iod_B.P_pre[1])
+//                maxP = ekf_Obj.ekf_iod_B.P_pre[1];
+//            if(maxP < ekf_Obj.ekf_iod_B.P_pre[2])
+//                maxP = ekf_Obj.ekf_iod_B.P_pre[2];
 
-            uint16_T ambiRadius = (uint16_T)sqrt(2*maxP);;
+//            uint16_T ambiRadius = (uint16_T)sqrt(2*maxP);;
 
-            //Sphere of ambiguity
-            U2F_REV1    = (uint8_t)(ambiRadius & 0x0F);
-            U2F_REV2    = (uint8_t)ambiRadius>>8;
+//            //Sphere of ambiguity
+//            U2F_REV1    = (uint8_t)(ambiRadius & 0x0F);
+//            U2F_REV2    = (uint8_t)ambiRadius>>8;
 
-            //Checksum
-            uint8_t CSA = 0, CSB = 0;
-            for (uint8_T i = 0; i < ID_TO_RES2_LENGTH; i++)
-            {
-                CSA = CSA + uwb2FccBuff[2+i];
-                CSB = CSB + CSA;
-            }
-            U2F_CS1 = CSA;
-            U2F_CS2 = CSB;
+//            //Checksum
+//            uint8_t CSA = 0, CSB = 0;
+//            for (uint8_T i = 0; i < ID_TO_RES2_LENGTH; i++)
+//            {
+//                CSA = CSA + uwb2FccBuff[2+i];
+//                CSB = CSB + CSA;
+//            }
+//            U2F_CS1 = CSA;
+//            U2F_CS2 = CSB;
 
-            int outlierFlag = 0;
-            if(outlier)
-                outlierFlag = 1;
-            fout << "i=[i " << nodeId << "];d=[d " << dists[nodeId - 1] << "];o=[o " << outlierFlag <<"];df=[df " << dists[nodeId - 1]<< "];x=[x " << x_est[0] << "];y=[y " << x_est[1] << "];z=[z " << x_est[2] << "];";
+            fout << "i=[i " << nodeId << "];d=[d " << dists[nodeId - 1] << "];o=[o " << (uint8_T) outlier <<"];df=[df " << dists[nodeId - 1]<< "];x=[x " << x_est[0] << "];y=[y " << x_est[1] << "];z=[z " << x_est[2] << "];";
             fout << "xd=[xd " << x_est[3] << "];yd=[yd " << x_est[4] << "];zd=[zd " << x_est[5] << "];";
             fout << "p1=[p1 " << ekf_Obj.ekf_iod_B.P_pre[0] << "];p2=[p2 "<<ekf_Obj.ekf_iod_B.P_pre[7]<<"];p3=[p3 "<<ekf_Obj.ekf_iod_B.P_pre[14]<<"];";
             fout << "X=[X " << viconX << "];Y=[Y " << viconY << "];Z=[Z " << viconZ << "];" << "Xd=[Xd " << viconXd << "];Yd=[Yd " << viconYd << "];Zd=[Zd " << viconZd << "];";
@@ -1036,11 +988,8 @@ int main(int argc, char *argv[])
             lossMarkBuff[lossMarkBuffIndex] = UP;
             if(lossMarkBuffIndex++ == LOSS_MEMORY_LENGTH)
                 lossMarkBuffIndex = 0;
-
             //Raise this flag to not to reset timer on next loop
             lastRangingSuccesful = false;
-            //account for the loss;
-            loss = (loss * 0.2 + 1/20);
         }
 
         nodeId++;
